@@ -1,47 +1,65 @@
 import Dashboard from "../pages/Dashboard";
 import Transactions from "../pages/Transactions";
 import Wallets from "../pages/Wallets";
-import BudgetsAndGoals from "../pages/BudgetsAndGoals"; 
+import BudgetsAndGoals from "../pages/BudgetsAndGoals";
 import Analytics from "../pages/Analytics";
 import AiInsights from "../pages/AiInsights";
 import Settings from "../pages/Settings";
+import Login from "../pages/Login";
+import Signup from "../pages/Signup";
+
 import { createBrowserRouter, Navigate } from "react-router-dom";
 
-const Routes = createBrowserRouter([{
+const router = createBrowserRouter([
+  {
     path: "/",
-    element: <Navigate to="/dashboard" replace/>
-},
-{
-    path:"/dashboard",
-    element: Dashboard
-},
-{
-    path:"/transactions",
-    element:Transactions,
-},
+    element: <Navigate to="/login" replace />, // start from login
+  },
 
-{
-    path:"/wallets",
-    element:Wallets,
-},
+  {
+    path: "/login",
+    element: <Login />,
+  },
 
-{
-    path:"/budgets",
-    element:BudgetsAndGoals,
-},
-{
-    path:"/analytics",
-    element:Analytics
-},
+  {
+    path: "/signup",
+    element: <Signup />,
+  },
 
-{
-    path:"/aiInsights",
-    element:AiInsights
-},
+  {
+    path: "/dashboard",
+    element: <Dashboard />,
+  },
 
-{
-    path:"/settings",
-    element:Settings
-},
+  {
+    path: "/transactions",
+    element: <Transactions />,
+  },
+
+  {
+    path: "/wallets",
+    element: <Wallets />,
+  },
+
+  {
+    path: "/budgets",
+    element: <BudgetsAndGoals />,
+  },
+
+  {
+    path: "/analytics",
+    element: <Analytics />,
+  },
+
+  {
+    path: "/aiInsights",
+    element: <AiInsights />,
+  },
+
+  {
+    path: "/settings",
+    element: <Settings />,
+  },
 ]);
-export default Routes;
+
+export default router;
