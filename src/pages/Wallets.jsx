@@ -1,5 +1,5 @@
 import { useState } from "react";
-import WalletCard from "../components/Dashboard/Wallets/WalletCard";
+import WalletCard from "../components/Wallets/WalletCard";
 
 /**
  * Wallets Component
