@@ -6,6 +6,13 @@ import { IoMdWallet } from "react-icons/io";
 import { MdEmail } from "react-icons/md";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 
+// 🔥 Axios
+import axios from "axios";
+
+// 🔥 Toast
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 const Login = () => {
   const navigate = useNavigate();
 
@@ -13,28 +20,50 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
+    // ❌ Empty fields check
     if (email.trim() === "" || password.trim() === "") {
-      alert("Please enter email and password");
+      toast.error("Please enter email and password");
       return;
     }
 
-    const users = JSON.parse(localStorage.getItem("users")) || [];
+    try {
+      const response = await axios.post(
+        "http://localhost:5000/api/login", // 🔁 change if needed
+        {
+          email,
+          password,
+        },
+      );
 
-    const foundUser = users.find(
-      (user) => user.email === email && user.password === password,
-    );
+      // ✅ Success
+      toast.success(response.data.message || "Login successful!");
 
-    if (foundUser) {
-      alert(`Welcome ${foundUser.name}!`);
-      navigate("/dashboard");
-    } else {
-      alert("Account not found. Please sign up first.");
+      // 👉 Optional: store token (if backend sends it)
+      if (response.data.token) {
+        localStorage.setItem("token", response.data.token);
+      }
+
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 2000);
+    } catch (error) {
+      // ❌ Error handling
+      if (error.response) {
+        toast.error(error.response.data.message || "Login failed");
+      } else if (error.request) {
+        toast.error("Server not responding");
+      } else {
+        toast.error("Something went wrong");
+      }
     }
   };
 
   return (
     <div className="container">
+      {/* 🔥 Toast Container */}
+      <ToastContainer position="top-right" autoClose={2000} />
+
       <div className="card">
         {/* Logo */}
         <div className="logo-container">
