@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import "../css/Signup.css";
 import { useNavigate } from "react-router-dom";
+import { FaWallet } from "react-icons/fa6";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -36,7 +37,9 @@ const Signup = () => {
   return (
     <div className="container">
       <div className="card signup-card">
-        <div className="logo"></div>
+        <div className="logo">
+          <FaWallet />
+        </div>
 
         <h1 className="title">SpendWise</h1>
         <p className="subtitle">
