@@ -1,62 +1,97 @@
+/* Full page background */
 body {
   margin: 0;
-  font-family: Arial;
-  background: linear-gradient(135deg, #0a0f2c, #050816);
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: radial-gradient(circle at top left, #0f1a3a, #020617);
+  height: 100vh;
 }
 
+/* Center container */
 .container {
-  height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
+  height: 100vh;
 }
 
+/* Card */
 .card {
-  background: #111633;
-  padding: 40px;
-  border-radius: 15px;
-  width: 320px;
+  background: rgba(10, 15, 35, 0.9);
+  padding: 40px 35px;
+  border-radius: 16px;
+  width: 350px;
   text-align: center;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
 }
 
-.title {
-  color: white;
+/* Title */
+.card h1 {
+  color: #ffffff;
+  margin-bottom: 25px;
+  font-size: 28px;
+  font-weight: 600;
 }
 
-.subtitle {
-  color: #aaa;
-  font-size: 14px;
-  margin-bottom: 20px;
-}
-
-.input {
+/* Inputs */
+.card input {
   width: 100%;
-  padding: 10px;
+  padding: 12px 14px;
   margin: 10px 0;
-  border-radius: 8px;
+  border-radius: 10px;
   border: none;
-  background: #1c2247;
-  color: white;
+  outline: none;
+  background: #1a223f;
+  color: #ffffff;
+  font-size: 14px;
+  transition: 0.3s;
 }
 
-.btn {
+/* Placeholder color */
+.card input::placeholder {
+  color: #9aa4c7;
+}
+
+/* Input focus */
+.card input:focus {
+  box-shadow: 0 0 0 2px #6c8cff;
+}
+
+/* Button */
+.card button {
   width: 100%;
   padding: 12px;
-  margin-top: 15px;
+  margin-top: 20px;
   border-radius: 25px;
   border: none;
-  background: #6c7cff;
+  background: linear-gradient(90deg, #6c8cff, #8fa8ff);
   color: white;
+  font-size: 15px;
+  font-weight: 500;
   cursor: pointer;
+  transition: 0.3s;
 }
 
-.footer {
-  color: #aaa;
-  font-size: 12px;
-  margin-top: 15px;
+/* Button hover */
+.card button:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
 }
 
-.footer span {
-  color: #6c7cff;
+/* Bottom text */
+.card p {
+  margin-top: 20px;
+  color: #9aa4c7;
+  font-size: 14px;
+}
+
+/* Link */
+.card span {
+  color: #6c8cff;
   cursor: pointer;
+  font-weight: 500;
+}
+
+.card span:hover {
+  text-decoration: underline;
 }
