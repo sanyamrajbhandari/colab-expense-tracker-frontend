@@ -36,7 +36,7 @@ body {
 
 .logo {
   font-size: 30px;
-  color: #ffffff;
+  color: #001868;
   margin-bottom: 10px;
 }
 
@@ -62,7 +62,7 @@ label {
   display: flex;
   align-items: center;
   background: rgba(255, 255, 255, 0.06);
-  padding: 10px;
+  padding: 6px 20px;
   border-radius: 14px;
   margin-bottom: 18px;
   transition: 0.2s;

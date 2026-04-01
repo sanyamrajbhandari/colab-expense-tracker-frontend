@@ -65,6 +65,26 @@ input::placeholder {
   color: #6b7280;
 }
 
+.password-field {
+  position: relative;
+  width: 100%;
+}
+
+.password-field input {
+  width: 100%;
+  padding-right: 60px; /* space for icon */
+}
+
+.password-field .eye {
+  position: absolute;
+  right: 10px;
+  top: 55%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #555;
+  font-size: 18px;
+}
+
 .btn {
   width: 100%;
   padding: 12px;
