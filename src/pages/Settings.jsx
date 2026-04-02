@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { FiAlertTriangle, FiBell, FiSave, FiUser } from "react-icons/fi";
-import MonthDropdown from "../components/MonthDropdown";
+import MonthDropdown from "../components/Multipage/MonthDropdown";
 import "../css/Settings.css";
 
 const Settings = () => {

@@ -1,6 +1,6 @@
 import React from "react";
 import { FiBarChart2, FiHelpCircle, FiRefreshCcw, FiTarget, FiUser } from "react-icons/fi";
-import MonthDropdown from "../components/MonthDropdown";
+import MonthDropdown from "../components/Multipage/MonthDropdown";
 import "../css/AIInsights.css";
 
 const AiInsights = () => {
