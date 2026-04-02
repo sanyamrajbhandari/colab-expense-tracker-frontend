@@ -1,9 +1,20 @@
 import React, { useState } from "react";
 import "../css/Signup.css";
 import { useNavigate } from "react-router-dom";
+import { IoMdWallet } from "react-icons/io";
+import { FiEye, FiEyeOff } from "react-icons/fi";
+
+// Axios
+import axios from "axios";
+
+// Toast
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const Signup = () => {
   const navigate = useNavigate();
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -19,28 +30,72 @@ const Signup = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match!");
+    const { name, email, password, confirmPassword } = formData;
+
+    // Password match check
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match!");
       return;
     }
 
-    console.log(formData);
-    alert("Signup successful!");
+    // Password strength check
+    const isWeak =
+      password.length < 6 || !/[A-Z]/.test(password) || !/[0-9]/.test(password);
 
-    navigate("/login");
+    if (isWeak) {
+      toast.error(
+        "Password must have at least 6 characters, 1 uppercase letter, and 1 number",
+      );
+      return;
+    }
+
+    try {
+      const response = await axios.post(
+        "http://localhost:5000/api/signup", // change if needed
+        {
+          name,
+          email,
+          password, // backend will hash it
+        },
+      );
+
+      // Success
+      toast.success(response.data.message || "Signup successful!");
+
+      setTimeout(() => {
+        navigate("/login");
+      }, 2000);
+    } catch (error) {
+      // Error handling
+      if (error.response) {
+        // backend sent error
+        toast.error(error.response.data.message || "Signup failed");
+      } else if (error.request) {
+        // no response from server
+        toast.error("Server not responding");
+      } else {
+        // other error
+        toast.error("Something went wrong");
+      }
+    }
   };
 
   return (
     <div className="container">
+      {/* Toast Container */}
+      <ToastContainer position="top-right" autoClose={2000} />
+
       <div className="card signup-card">
-        <div className="logo"></div>
+        <div className="logo">
+          <IoMdWallet />
+        </div>
 
         <h1 className="title">SpendWise</h1>
         <p className="subtitle">
-          Join The Midnight Architect and design your financial future.
+          Join SpendWise and Track Where Your Money Goes.
         </p>
 
         <form onSubmit={handleSubmit}>
@@ -65,24 +120,35 @@ const Signup = () => {
           />
 
           <label>PASSWORD</label>
-          <input
-            type="password"
-            name="password"
-            placeholder="Enter Your Password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-          />
+          <div className="password-field">
+            <input
+              type={showPassword ? "text" : "password"}
+              name="password"
+              placeholder="Enter Your Password"
+              value={formData.password}
+              onChange={handleChange}
+              required
+            />
+
+            <span
+              className="eye"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? <FiEyeOff /> : <FiEye />}
+            </span>
+          </div>
 
           <label>CONFIRM PASSWORD</label>
-          <input
-            type="password"
-            name="confirmPassword"
-            placeholder="confirmPassword"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-            required
-          />
+          <div className="password-field">
+            <input
+              type={showPassword ? "text" : "password"}
+              name="confirmPassword"
+              placeholder="Confirm Password"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              required
+            />
+          </div>
 
           <button type="submit" className="btn">
             Sign Up
