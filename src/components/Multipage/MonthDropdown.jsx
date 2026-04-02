@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { FiChevronDown, FiChevronLeft, FiChevronRight } from "react-icons/fi";
-import "../css/MonthDropdown.css";
+import "/src/css/MonthDropdown.css";
 
 const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
