@@ -1,0 +1,14 @@
+.right-board {
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.app {
+  display: flex;
+}
+
+.right-board {
+  flex: 1;
+  height: 100vh;
+  overflow-y: auto;
+}

@@ -2,7 +2,20 @@ import React, { useState, useRef, useEffect } from "react";
 import { FiChevronDown, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import "/src/css/MonthDropdown.css";
 
-const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const months = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
 
 const MonthDropdown = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -20,12 +33,17 @@ const MonthDropdown = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const fullMonthName = new Date(`${selectedMonth} 1, ${year}`).toLocaleString('default', { month: 'long' });
+  const fullMonthName = new Date(`${selectedMonth} 1, ${year}`).toLocaleString(
+    "default",
+    { month: "long" },
+  );
 
   return (
     <div className="month-dropdown-container" ref={dropdownRef}>
       <div className="month-dropdown-toggle" onClick={() => setIsOpen(!isOpen)}>
-        <span>{fullMonthName} {year}</span>
+        <span>
+          {fullMonthName} {year}
+        </span>
         <FiChevronDown className="dropdown-icon" />
       </div>
 
@@ -41,10 +59,10 @@ const MonthDropdown = () => {
             </button>
           </div>
           <div className="month-grid">
-            {months.map(month => (
-              <button 
-                key={month} 
-                className={`month-btn ${selectedMonth === month ? 'selected' : ''}`}
+            {months.map((month) => (
+              <button
+                key={month}
+                className={`month-btn ${selectedMonth === month ? "selected" : ""}`}
                 onClick={() => {
                   setSelectedMonth(month);
                   setIsOpen(false);
