@@ -6,10 +6,10 @@ import { IoMdWallet } from "react-icons/io";
 import { MdEmail } from "react-icons/md";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 
-// 🔥 Axios
+// Axios
 import axios from "axios";
 
-// 🔥 Toast
+// Toast
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -21,7 +21,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
-    // ❌ Empty fields check
+    // Empty fields check
     if (email.trim() === "" || password.trim() === "") {
       toast.error("Please enter email and password");
       return;
@@ -29,17 +29,17 @@ const Login = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/login", // 🔁 change if needed
+        "http://localhost:5000/api/login", // change if needed
         {
           email,
           password,
         },
       );
 
-      // ✅ Success
+      // Success
       toast.success(response.data.message || "Login successful!");
 
-      // 👉 Optional: store token (if backend sends it)
+      // Optional: store token (if backend sends it)
       if (response.data.token) {
         localStorage.setItem("token", response.data.token);
       }
@@ -48,7 +48,7 @@ const Login = () => {
         navigate("/dashboard");
       }, 2000);
     } catch (error) {
-      // ❌ Error handling
+      // Error handling
       if (error.response) {
         toast.error(error.response.data.message || "Login failed");
       } else if (error.request) {
@@ -61,8 +61,12 @@ const Login = () => {
 
   return (
     <div className="container">
-      {/* 🔥 Toast Container */}
-      <ToastContainer position="top-right" autoClose={2000} />
+      {/* Toast Container */}
+      <ToastContainer
+        position="top-right"
+        closeButton={false}
+        autoClose={2000}
+      />
 
       <div className="card">
         {/* Logo */}
