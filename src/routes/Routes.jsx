@@ -9,6 +9,7 @@ import Login from "../pages/Login";
 import Signup from "../pages/Signup";
 
 import { createBrowserRouter, Navigate } from "react-router-dom";
+import { Sidebar } from "lucide-react";
 
 const router = createBrowserRouter([
   {
@@ -44,6 +45,7 @@ const router = createBrowserRouter([
   {
     path: "/budgets",
     element: <BudgetsAndGoals />,
+    Component: Sidebar,
   },
 
   {
