@@ -1,39 +1,52 @@
+import React, { useState } from "react";
 import Sidebar from "../components/Multipage/Sidebar";
 import Topbar from "../components/Multipage/Topbar";
 import TransactionList from "../components/Dashboard/TransactionList";
+import AddTransaction from "../components/Dashboard/AddTransaction";
 import "../css/Dashboard.css";
 
 function Transactions(props) {
+  // 1. Create the "Switch". Starts at 'false' because we don't want the popup visible immediately.
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // 2. These functions flip the switch
+  const openPopup = () => setIsModalOpen(true);
+  const closePopup = () => setIsModalOpen(false);
+
   return (
     <div className="app">
-      {/* Sidebar — same as dashboard */}
       <Sidebar items={props.items} />
 
       <span className="right-board">
-        {/* Topbar — just different title */}
         <Topbar title="Transactions" />
 
         <div className="scrollable-content">
           <div className="transactions-page">
-            {/* ── Search bar + filter + add button row ── */}
             <div className="tx-controls">
+              {/* Search bar stuff... */}
               <div className="tx-search">
                 <span className="search-icon">🔍</span>
                 <input
                   type="text"
-                  placeholder="Search by title..."
+                  placeholder="Search..."
                   className="search-input"
                 />
               </div>
-              <button className="filter-btn">March 2026 ▾</button>
-              <button className="add-btn">+ Add Transaction</button>
+
+              {/* 3. When this button is clicked, we call openPopup() */}
+              <button className="add-btn" onClick={openPopup}>
+                + Add Transaction
+              </button>
             </div>
 
-            {/* ── Reusing TransactionList component ── */}
             <TransactionList transactions={props.allTransactions} />
           </div>
         </div>
       </span>
+
+      {/* 4. The Magic Logic: If isModalOpen is true, show <AddTransaction />. 
+          We pass the closePopup function as a "prop" named onClose. */}
+      {isModalOpen && <AddTransaction onClose={closePopup} />}
     </div>
   );
 }
