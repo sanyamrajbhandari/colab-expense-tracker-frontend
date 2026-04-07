@@ -24,7 +24,11 @@ const items = [
     route: "/transactions",
   },
   { label: "Wallets", icon: <Wallet size={20} />, route: "/wallets" },
-  { label: "Budgets & Goals", icon: <Target size={20} />, route: "/budgets" },
+  {
+    label: "Budgets & Goals",
+    icon: <Target size={20} />,
+    route: "/BudgetsAndGoals",
+  },
   { label: "Analytics", icon: <BarChart3 size={20} />, route: "/analytics" },
   { label: "AI Insights", icon: <Sparkles size={20} />, route: "/aiInsights" },
   { label: "Settings", icon: <Settings size={20} />, route: "/settings" },
