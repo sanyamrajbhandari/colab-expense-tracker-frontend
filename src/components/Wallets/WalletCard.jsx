@@ -8,7 +8,7 @@ const icons = {
   credit: <FaCreditCard size={20} color="white" />,
 };
 
-const WalletCard = ({ walletName, balance, currency, iconColor, type }) => {
+const WalletCard = ({ walletName, balance, currency, iconColor, type, onEdit, onTransfer }) => {
   return (
     <div style={{ background: "#1a2235", borderRadius: "16px", padding: "24px", border: "1px solid rgba(255,255,255,0.06)" }}>
       <div style={{ width: "48px", height: "48px", borderRadius: "12px", background: iconColor, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "16px" }}>
@@ -19,10 +19,10 @@ const WalletCard = ({ walletName, balance, currency, iconColor, type }) => {
         {currency}{balance.toLocaleString()}
       </h2>
       <div style={{ display: "flex", gap: "10px" }}>
-        <button style={{ flex: 1, padding: "10px", borderRadius: "10px", background: "transparent", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer" }}>
+        <button onClick={onEdit} style={{ flex: 1, padding: "10px", borderRadius: "10px", background: "transparent", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer" }}>
           Edit
         </button>
-        <button style={{ flex: 1, padding: "10px", borderRadius: "10px", background: "transparent", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer" }}>
+        <button onClick={onTransfer} style={{ flex: 1, padding: "10px", borderRadius: "10px", background: "transparent", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer" }}>
           Transfer
         </button>
       </div>
