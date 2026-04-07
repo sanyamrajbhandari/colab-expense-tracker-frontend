@@ -86,16 +86,16 @@ const BudgetsAndGoals = () => {
       <Sidebar />
 
       <div className="right-board">
-        <Topbar title="Wallets" />
+        <Topbar title="Budgets & Goals" />
 
         <div className="budgets-container">
-          <h2 className="page-title">Budgets & Goals</h2>
+          {/* <h2 className="page-title">Budgets & Goals</h2> */}
 
           {/* ===== BUDGET ===== */}
           <div className="budget-card">
             <div className="budget-header">
               <h3>Monthly Budget</h3>
-              <button className="btn" onClick={handleSetBudget}>
+              <button className="btn-budget" onClick={handleSetBudget}>
                 Set Budget
               </button>
             </div>
@@ -128,7 +128,7 @@ const BudgetsAndGoals = () => {
           {/* ===== GOALS ===== */}
           <div className="goals-header">
             <h3>Savings Goals</h3>
-            <button className="btn" onClick={handleAddGoal}>
+            <button className="btn-budget" onClick={handleAddGoal}>
               + Add Goal
             </button>
           </div>

@@ -129,7 +129,9 @@ const Login = () => {
           </div>
 
           {/* Button */}
-          <button onClick={handleLogin}>Log In →</button>
+          <button className="btn-login" onClick={handleLogin}>
+            Log In →
+          </button>
         </div>
 
         {/* Signup */}

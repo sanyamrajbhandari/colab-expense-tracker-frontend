@@ -99,7 +99,6 @@
 }
 
 .update-btn {
-  width: 100%;
   padding: 8px;
   background: #374151;
   border: none;
@@ -108,7 +107,7 @@
   cursor: pointer;
 }
 
-.btn {
+.btn-budget {
   background: #2563eb;
   border: none;
   padding: 8px 14px;
@@ -147,6 +146,7 @@
 }
 
 .close-btn {
+  width: auto;
   cursor: pointer;
   font-size: 20px;
 }
