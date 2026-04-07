@@ -43,9 +43,8 @@ const router = createBrowserRouter([
   },
 
   {
-    path: "/budgets",
+    path: "/BudgetsAndGoals",
     element: <BudgetsAndGoals />,
-    Component: Sidebar,
   },
 
   {
