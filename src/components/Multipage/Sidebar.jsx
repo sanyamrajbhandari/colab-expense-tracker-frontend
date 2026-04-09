@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useState } from "react";
 import {
   LayoutDashboard,
@@ -47,21 +48,19 @@ function Sidebar({ activePage }) {
       {/* Navigation links */}
       <div className="flex-1 flex flex-col gap-1 px-2">
         {navItems.map(function (item) {
-          // Check if this link is the currently active page
           const isActive = item.label === activePage;
 
-          // Choose blue background if active, transparent if not
           const linkStyle = isActive
             ? "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white"
             : "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5";
 
           return (
-            <a key={item.label} href={item.path} className={linkStyle}>
+            <Link to={item.path} key={item.label} className={linkStyle}>
               <item.icon size={17} className="shrink-0" />
               {collapsed === false && (
                 <span className="whitespace-nowrap">{item.label}</span>
               )}
-            </a>
+            </Link>
           );
         })}
       </div>
