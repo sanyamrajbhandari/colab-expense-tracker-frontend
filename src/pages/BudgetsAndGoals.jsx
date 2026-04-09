@@ -83,7 +83,7 @@ const BudgetsAndGoals = () => {
 
   return (
     <div className="app">
-      <Sidebar />
+      <Sidebar activePage="Budgets & Goals" />
 
       <div className="right-board">
         <Topbar title="Budgets & Goals" />
