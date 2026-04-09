@@ -1,66 +1,86 @@
+import { Link } from "react-router-dom";
+import { useState } from "react";
 import {
   LayoutDashboard,
-  Wallet,
   ArrowLeftRight,
+  Wallet,
   Target,
-  BarChart3,
+  BarChart2,
   Sparkles,
   Settings,
+  Code2,
   ChevronLeft,
-  Briefcase,
+  ChevronRight,
 } from "lucide-react";
 
-import { Link } from "react-router-dom";
-
-const items = [
-  {
-    label: "Dashboard",
-    icon: <LayoutDashboard size={20} />,
-    route: "/dashboard",
-  },
-  {
-    label: "Transactions",
-    icon: <ArrowLeftRight size={20} />,
-    route: "/transactions",
-  },
-  { label: "Wallets", icon: <Wallet size={20} />, route: "/wallets" },
-  {
-    label: "Budgets & Goals",
-    icon: <Target size={20} />,
-    route: "/BudgetsAndGoals",
-  },
-  { label: "Analytics", icon: <BarChart3 size={20} />, route: "/analytics" },
-  { label: "AI Insights", icon: <Sparkles size={20} />, route: "/aiInsights" },
-  { label: "Settings", icon: <Settings size={20} />, route: "/settings" },
+// These are all the links that appear in the sidebar
+const navItems = [
+  { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
+  { label: "Transactions", icon: ArrowLeftRight, path: "/transactions" },
+  { label: "Wallets", icon: Wallet, path: "/wallets" },
+  { label: "Budgets & Goals", icon: Target, path: "/budgets" },
+  { label: "Analytics", icon: BarChart2, path: "/analytics" },
+  { label: "AI Insights", icon: Sparkles, path: "/aiInsights" },
+  { label: "Settings", icon: Settings, path: "/settings" },
 ];
 
-function Sidebar() {
-  const listItems = items.map((item) => (
-    <Link to={item.route}>
-      <li key={item.label}>
-        {item.icon} &nbsp;
-        <b>{item.label}</b>
-      </li>
-    </Link>
-  ));
+function Sidebar({ activePage }) {
+  // This controls whether the sidebar is wide or narrow
+  const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <span className="left-board">
-      <div className="logo">
-        <div className="logo-icon">
-          <Wallet size={20} />
+    <div
+      style={{ width: collapsed ? "68px" : "190px" }}
+      className="flex flex-col h-screen bg-[#0f1117] border-r border-white/5 transition-all duration-300 shrink-0"
+    >
+      {/* Logo at the top */}
+      <div className="flex items-center gap-3 px-4 py-5 mb-2">
+        <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center shrink-0">
+          <Wallet size={16} className="text-white" />
         </div>
-        <span className="logo-text">SpendWise</span>
+        {collapsed === false && (
+          <span className="text-white font-semibold text-sm whitespace-nowrap">
+            SpendWise
+          </span>
+        )}
       </div>
 
-      <ul className="list-items">{listItems}</ul>
+      {/* Navigation links */}
+      <div className="flex-1 flex flex-col gap-1 px-2">
+        {navItems.map(function (item) {
+          const isActive = item.label === activePage;
 
-      <div className="sidebar-bottom">
-        <div className="collapse-btn">
-          <ChevronLeft size={18} /> Collapse
-        </div>
+          const linkStyle = isActive
+            ? "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white"
+            : "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5";
+
+          return (
+            <Link to={item.path} key={item.label} className={linkStyle}>
+              <item.icon size={17} className="shrink-0" />
+              {collapsed === false && (
+                <span className="whitespace-nowrap">{item.label}</span>
+              )}
+            </Link>
+          );
+        })}
       </div>
-    </span>
+
+      {/* Bottom buttons */}
+      <div className="px-2 pb-4 flex flex-col gap-1">
+        {/* Collapse button — clicking it toggles the sidebar width */}
+        <button
+          onClick={function () {
+            setCollapsed(!collapsed);
+          }}
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/5 w-full"
+        >
+          {collapsed ? <ChevronRight size={17} /> : <ChevronLeft size={17} />}
+          {collapsed === false && (
+            <span className="whitespace-nowrap">Collapse</span>
+          )}
+        </button>
+      </div>
+    </div>
   );
 }
 
