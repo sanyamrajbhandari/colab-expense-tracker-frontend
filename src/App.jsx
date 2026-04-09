@@ -1,6 +1,5 @@
 import routes from "./routes/Routes";
 import { RouterProvider } from "react-router-dom";
-import AddTransaction from "./components/Dashboard/AddTransaction.jsx"
 
 import React from 'react'
 

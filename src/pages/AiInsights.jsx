@@ -8,7 +8,7 @@ import {
 } from "react-icons/fi";
 import MonthDropdown from "../components/Multipage/MonthDropdown";
 import Sidebar from "../components/Multipage/Sidebar";
-import Topbar from "../components/Multipage/Topbar";
+import Dashboard from "../components/Dashboard/DashboardHeader";
 import "../css/AIInsights.css";
 
 const AiInsights = () => {
@@ -19,7 +19,7 @@ const AiInsights = () => {
 
       <div className="right-board">
         {/* Topbar component */}
-        <Topbar title="Ai Insights" />
+        <Dashboard title="Ai Insights" />
 
         <div className="insights-container">
           {/* <div className="insights-header-top">

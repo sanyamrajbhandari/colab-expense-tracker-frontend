@@ -2,7 +2,7 @@ import { useState } from "react";
 import "../css/Wallets.css";
 import WalletCard from "../components/Wallets/WalletCard";
 import Sidebar from "../components/Multipage/Sidebar";
-import Topbar from "../components/Multipage/Topbar";
+import Dashboard from "../components/Dashboard/DashboardHeader";
 
 /**
  * Wallets Page Component
@@ -116,7 +116,7 @@ const Wallets = () => {
 
       <div className="right-board">
         {/* Topbar component */}
-        <Topbar title="Wallets" />
+        <Dashboard title="Wallets" />
 
         <div
           style={{ padding: "28px", background: "#0f1623", minHeight: "100vh" }}

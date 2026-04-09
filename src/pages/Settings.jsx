@@ -3,7 +3,7 @@ import { FiAlertTriangle, FiBell, FiSave, FiUser } from "react-icons/fi";
 import MonthDropdown from "../components/Multipage/MonthDropdown";
 import "../css/Settings.css";
 import Sidebar from "../components/Multipage/Sidebar";
-import Topbar from "../components/Multipage/Topbar";
+import Dashboard from "../components/Dashboard/DashboardHeader";
 
 const Settings = () => {
   const [profile, setProfile] = useState({
@@ -43,7 +43,7 @@ const Settings = () => {
 
       <div className="right-board">
         {/* Topbar component */}
-        <Topbar title="Settings" />
+        <Dashboard title="Settings" />
 
         <div className="settings-container">
           {/* <div className="settings-header">
