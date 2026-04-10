@@ -1,10 +1,10 @@
 import { useState } from "react";
 import WalletCard from "../components/Wallets/WalletCard";
+import Sidebar from "../components/Multipage/Sidebar";
+import Dashboard from "../components/Dashboard/DashboardHeader";
 import { FaUniversity } from "react-icons/fa";
 
 const Wallets = () => {
-
-  // ─── State ───────────────────────────────────────────────────────────────────
   const [wallets, setWallets] = useState([
     { id: 1, walletName: "Cash",        balance: 520.5,   currency: "$", iconColor: "#0fc98a", type: "cash"   },
     { id: 2, walletName: "Bank",        balance: 8450.75, currency: "$", iconColor: "#3b82f6", type: "bank"   },
@@ -13,257 +13,233 @@ const Wallets = () => {
     { id: 5, walletName: "Credit Card", balance: 3200,    currency: "$", iconColor: "#ef4444", type: "credit" },
   ]);
 
-  /** Controls Add Wallet modal */
-  const [showAddModal, setShowAddModal]           = useState(false);
-
-  /** Controls Edit modal and which wallet is being edited */
-  const [showEditModal, setShowEditModal]         = useState(false);
-  const [editingWallet, setEditingWallet]         = useState(null);
-  const [newBalance, setNewBalance]               = useState("");
-
-  /** Controls Transfer modal and which wallet is transferring from */
+  const [showAddModal,      setShowAddModal]      = useState(false);
+  const [showEditModal,     setShowEditModal]     = useState(false);
+  const [editingWallet,     setEditingWallet]     = useState(null);
+  const [newBalance,        setNewBalance]        = useState("");
   const [showTransferModal, setShowTransferModal] = useState(false);
-  const [transferFrom, setTransferFrom]           = useState(null);
-  const [transferTo, setTransferTo]               = useState(null);
-  const [transferAmount, setTransferAmount]       = useState("");
+  const [transferFrom,      setTransferFrom]      = useState(null);
+  const [transferTo,        setTransferTo]        = useState(null);
+  const [transferAmount,    setTransferAmount]    = useState("");
+  const [newWallet,         setNewWallet]         = useState({ walletName: "", balance: "", iconColor: "#a5b4fc" });
 
-  /** Add Wallet form state */
-  const [newWallet, setNewWallet] = useState({ walletName: "", balance: "", iconColor: "#a5b4fc" });
-
-  // ─── Constants ───────────────────────────────────────────────────────────────
-  const colors      = ["#a5b4fc", "#f9a8d4", "#c4b5fd", "#fca5a5"];
+  const colors       = ["#a5b4fc", "#f9a8d4", "#c4b5fd", "#fca5a5"];
   const totalBalance = wallets.reduce((sum, w) => sum + w.balance, 0);
 
-  // ─── Handlers ────────────────────────────────────────────────────────────────
-
-  /** Opens edit modal for a specific wallet */
-  const handleOpenEdit = (wallet) => {
-    setEditingWallet(wallet);
-    setNewBalance("");
-    setShowEditModal(true);
-  };
-
-  /** Updates the balance of the wallet being edited */
+  const handleOpenEdit = (wallet) => { setEditingWallet(wallet); setNewBalance(""); setShowEditModal(true); };
   const handleUpdateBalance = () => {
     if (!newBalance) return;
-    setWallets((prev) =>
-      prev.map((w) => w.id === editingWallet.id ? { ...w, balance: parseFloat(newBalance) } : w)
-    );
+    setWallets((prev) => prev.map((w) => w.id === editingWallet.id ? { ...w, balance: parseFloat(newBalance) } : w));
     setShowEditModal(false);
   };
-
-  /** Opens transfer modal for a specific wallet */
   const handleOpenTransfer = (wallet) => {
     setTransferFrom(wallet);
     setTransferTo(wallets.find((w) => w.id !== wallet.id));
     setTransferAmount("");
     setShowTransferModal(true);
   };
-
-  /** Swaps the from and to wallets in transfer modal */
-  const handleSwapWallets = () => {
-    setTransferFrom(transferTo);
-    setTransferTo(transferFrom);
-  };
-
-  /** Transfers amount from one wallet to another */
+  const handleSwapWallets = () => { setTransferFrom(transferTo); setTransferTo(transferFrom); };
   const handleTransfer = () => {
     const amount = parseFloat(transferAmount);
     if (!amount || amount <= 0 || amount > transferFrom.balance) return;
-    setWallets((prev) =>
-      prev.map((w) => {
-        if (w.id === transferFrom.id) return { ...w, balance: w.balance - amount };
-        if (w.id === transferTo.id)   return { ...w, balance: w.balance + amount };
-        return w;
-      })
-    );
+    setWallets((prev) => prev.map((w) => {
+      if (w.id === transferFrom.id) return { ...w, balance: w.balance - amount };
+      if (w.id === transferTo.id)   return { ...w, balance: w.balance + amount };
+      return w;
+    }));
     setShowTransferModal(false);
   };
-
-  /** Adds a new wallet to the list */
   const handleAddWallet = () => {
     if (!newWallet.walletName || !newWallet.balance) return;
     setWallets((prev) => [...prev, {
-      id: Date.now(),
-      walletName: newWallet.walletName,
-      balance: parseFloat(newWallet.balance),
-      currency: "$",
-      iconColor: newWallet.iconColor,
-      type: "cash",
+      id: Date.now(), walletName: newWallet.walletName, balance: parseFloat(newWallet.balance),
+      currency: "$", iconColor: newWallet.iconColor, type: "cash",
     }]);
     setNewWallet({ walletName: "", balance: "", iconColor: "#a5b4fc" });
     setShowAddModal(false);
   };
 
-  // ─── Shared Styles ────────────────────────────────────────────────────────────
-  const overlayStyle = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 };
-  const modalStyle   = { background: "#151f2e", borderRadius: "16px", padding: "32px", width: "420px", border: "1px solid rgba(255,255,255,0.08)" };
-  const inputStyle   = { background: "none", border: "none", color: "#fff", fontSize: "18px", outline: "none", width: "100%" };
-  const inputBoxStyle = { display: "flex", alignItems: "center", background: "#1e2a3a", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.1)", padding: "12px 16px", marginTop: "8px", marginBottom: "16px" };
-  const labelStyle   = { color: "#8a9bbf", fontSize: "12px", letterSpacing: "1px" };
-  const cancelBtnStyle = { flex: 1, padding: "14px", borderRadius: "30px", background: "#1e2a3a", border: "1px solid rgba(255,255,255,0.1)", color: "#8a9bbf", cursor: "pointer", fontSize: "14px" };
-  const confirmBtnStyle = { flex: 1, padding: "14px", borderRadius: "30px", background: "linear-gradient(135deg, #6366f1, #3b82f6)", border: "none", color: "#fff", cursor: "pointer", fontWeight: "700", fontSize: "14px" };
-
-  // ─── Render ──────────────────────────────────────────────────────────────────
-  return (
-    <div style={{ padding: "28px", background: "#0f1623", minHeight: "100vh" }}>
-
-      {/* ── Header ── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "28px" }}>
-        <div>
-          <p style={{ color: "#8a9bbf", margin: 0 }}>Total Balance</p>
-          <h2 style={{ color: "#3b82f6", fontSize: "28px", margin: 0 }}>${totalBalance.toLocaleString()}</h2>
-        </div>
-        <button onClick={() => setShowAddModal(true)} style={{ padding: "10px 20px", borderRadius: "10px", background: "#3b82f6", border: "none", color: "#fff", fontWeight: "600", cursor: "pointer" }}>
-          + Add Wallet
-        </button>
+  // ── Reusable modal pieces ──────────────────────────────────────────────────
+  const ModalOverlay = ({ onClose, children }) => (
+    <div onClick={onClose} className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100]">
+      <div onClick={(e) => e.stopPropagation()} className="bg-[#151f2e] rounded-2xl p-8 w-[420px] border border-white/[0.08]">
+        {children}
       </div>
+    </div>
+  );
+  const ModalLabel = ({ children }) => (
+    <p className="text-[#8a9bbf] text-[11px] tracking-widest uppercase mb-2">{children}</p>
+  );
+  const InputBox = ({ children }) => (
+    <div className="flex items-center bg-[#1e2a3a] rounded-xl border border-white/10 px-4 py-3 mb-4">{children}</div>
+  );
+  const inputCls = "bg-transparent border-none text-white text-lg outline-none w-full placeholder:text-[#4a5a6a]";
+  const CancelBtn = ({ onClick }) => (
+    <button onClick={onClick} className="flex-1 py-3.5 rounded-full bg-[#1e2a3a] border border-white/10 text-[#8a9bbf] text-sm cursor-pointer hover:bg-[#263347] transition-colors">
+      Cancel
+    </button>
+  );
+  const ConfirmBtn = ({ onClick, children }) => (
+    <button onClick={onClick} className="flex-1 py-3.5 rounded-full bg-gradient-to-br from-indigo-500 to-blue-500 text-white font-bold text-sm cursor-pointer hover:opacity-90 transition-opacity">
+      {children}
+    </button>
+  );
 
-      {/* ── Wallet Cards Grid ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "20px" }}>
-        {wallets.map((wallet) => (
-          <WalletCard
-            key={wallet.id}
-            {...wallet}
-            onEdit={() => handleOpenEdit(wallet)}
-            onTransfer={() => handleOpenTransfer(wallet)}
-          />
-        ))}
+  return (
+    <div className="flex h-screen bg-[#0f1623] overflow-hidden">
+      <Sidebar />
+
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Dashboard title="Wallets" />
+
+        <div className="flex-1 overflow-y-auto p-7">
+
+          {/* ── Header ── */}
+          <div className="flex justify-between items-center mb-7">
+            <div>
+              <p className="text-[#8a9bbf] text-sm mb-1">Total Balance</p>
+              <h2 className="text-[#3b82f6] text-3xl font-bold leading-none">
+                ${totalBalance.toLocaleString()}
+              </h2>
+            </div>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#3b82f6] text-white font-semibold text-sm hover:bg-blue-500 transition-colors"
+            >
+              + Add Wallet
+            </button>
+          </div>
+
+          {/* ── Wallet Cards Grid ── */}
+          <div className="grid grid-cols-3 gap-5">
+            {wallets.map((wallet) => (
+              <WalletCard
+                key={wallet.id}
+                {...wallet}
+                onEdit={() => handleOpenEdit(wallet)}
+                onTransfer={() => handleOpenTransfer(wallet)}
+              />
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* ── Edit Balance Modal ── */}
       {showEditModal && editingWallet && (
-        <div onClick={() => setShowEditModal(false)} style={overlayStyle}>
-          <div onClick={(e) => e.stopPropagation()} style={modalStyle}>
+        <ModalOverlay onClose={() => setShowEditModal(false)}>
+          <h3 className="text-white text-xl font-bold mb-1">Edit {editingWallet.walletName} Balance</h3>
+          <p className="text-[#8a9bbf] text-sm mb-6">Update your current liquidity across all accounts.</p>
 
-            {/* Title */}
-            <h3 style={{ color: "#fff", margin: "0 0 4px", fontSize: "22px" }}>Edit {editingWallet.walletName} Balance</h3>
-            <p style={{ color: "#8a9bbf", margin: "0 0 24px", fontSize: "13px" }}>Update your current liquidity across all accounts.</p>
-
-            {/* Current Balance Display */}
-            <div style={{ background: "#1e2a3a", borderRadius: "10px", padding: "16px 20px", marginBottom: "20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <p style={{ ...labelStyle, margin: "0 0 4px" }}>CURRENT BALANCE</p>
-                <h2 style={{ color: "#fff", margin: 0, fontSize: "24px" }}>${editingWallet.balance.toLocaleString()}</h2>
-              </div>
-              <FaUniversity size={24} color="#8a9bbf" />
+          <div className="flex justify-between items-center bg-[#1e2a3a] rounded-xl px-5 py-4 mb-5">
+            <div>
+              <p className="text-[#8a9bbf] text-[10px] tracking-widest uppercase mb-1">Current Balance</p>
+              <p className="text-white text-2xl font-bold">${editingWallet.balance.toLocaleString()}</p>
             </div>
-
-            {/* New Balance Input */}
-            <label style={labelStyle}>New Balance</label>
-            <div style={inputBoxStyle}>
-              <span style={{ color: "#8a9bbf", marginRight: "8px", fontSize: "18px" }}>$</span>
-              <input type="number" placeholder="0.00" value={newBalance} onChange={(e) => setNewBalance(e.target.value)} style={inputStyle} />
-            </div>
-
-            {/* Info Note */}
-            <div style={{ background: "rgba(99,102,241,0.1)", borderRadius: "10px", padding: "12px 16px", marginBottom: "24px", display: "flex", gap: "10px", alignItems: "center" }}>
-              <span style={{ color: "#6366f1" }}>ℹ</span>
-              <p style={{ color: "#8a9bbf", margin: 0, fontSize: "13px" }}>This adjustment will be logged as a manual balance correction.</p>
-            </div>
-
-            {/* Buttons */}
-            <div style={{ display: "flex", gap: "12px" }}>
-              <button onClick={() => setShowEditModal(false)} style={cancelBtnStyle}>Cancel</button>
-              <button onClick={handleUpdateBalance} style={confirmBtnStyle}>Update Balance</button>
-            </div>
+            <FaUniversity size={24} className="text-[#8a9bbf]" />
           </div>
-        </div>
+
+          <ModalLabel>New Balance</ModalLabel>
+          <InputBox>
+            <span className="text-[#8a9bbf] mr-2 text-lg">$</span>
+            <input type="number" placeholder="0.00" value={newBalance} onChange={(e) => setNewBalance(e.target.value)} className={inputCls} />
+          </InputBox>
+
+          <div className="flex items-center gap-2.5 bg-indigo-500/10 rounded-xl px-4 py-3 mb-6">
+            <span className="text-indigo-400">ℹ</span>
+            <p className="text-[#8a9bbf] text-xs">This adjustment will be logged as a manual balance correction.</p>
+          </div>
+
+          <div className="flex gap-3">
+            <CancelBtn onClick={() => setShowEditModal(false)} />
+            <ConfirmBtn onClick={handleUpdateBalance}>Update Balance</ConfirmBtn>
+          </div>
+        </ModalOverlay>
       )}
 
-      {/* ── Transfer Money Modal ── */}
+      {/* ── Transfer Modal ── */}
       {showTransferModal && transferFrom && transferTo && (
-        <div onClick={() => setShowTransferModal(false)} style={overlayStyle}>
-          <div onClick={(e) => e.stopPropagation()} style={modalStyle}>
-
-            {/* Header */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
-              <h3 style={{ color: "#fff", margin: 0, fontSize: "22px" }}>Transfer Money</h3>
-              <button onClick={() => setShowTransferModal(false)} style={{ background: "none", border: "none", color: "#8a9bbf", fontSize: "20px", cursor: "pointer" }}>✕</button>
-            </div>
-            <p style={{ color: "#8a9bbf", margin: "0 0 24px", fontSize: "13px" }}>Move funds instantly between your wallets.</p>
-
-            {/* From Wallet */}
-            <label style={labelStyle}>FROM WALLET</label>
-            <select
-              value={transferFrom.id}
-              onChange={(e) => setTransferFrom(wallets.find((w) => w.id === parseInt(e.target.value)))}
-              style={{ width: "100%", padding: "14px 16px", borderRadius: "10px", background: "#1e2a3a", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "14px", marginTop: "8px", outline: "none" }}
-            >
-              {wallets.filter((w) => w.id !== transferTo.id).map((w) => (
-                <option key={w.id} value={w.id}>{w.walletName}</option>
-              ))}
-            </select>
-
-            {/* Swap Button */}
-            <div style={{ display: "flex", justifyContent: "center", margin: "12px 0" }}>
-              <button onClick={handleSwapWallets} style={{ width: "36px", height: "36px", borderRadius: "50%", background: "#3b82f6", border: "none", color: "#fff", cursor: "pointer", fontSize: "16px" }}>⇅</button>
-            </div>
-
-            {/* To Wallet */}
-            <label style={labelStyle}>TO WALLET</label>
-            <select
-              value={transferTo.id}
-              onChange={(e) => setTransferTo(wallets.find((w) => w.id === parseInt(e.target.value)))}
-              style={{ width: "100%", padding: "14px 16px", borderRadius: "10px", background: "#1e2a3a", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "14px", marginTop: "8px", outline: "none" }}
-            >
-              {wallets.filter((w) => w.id !== transferFrom.id).map((w) => (
-                <option key={w.id} value={w.id}>{w.walletName}</option>
-              ))}
-            </select>
-
-            {/* Amount Input */}
-            <label style={{ ...labelStyle, display: "block", marginTop: "16px" }}>AMOUNT</label>
-            <div style={inputBoxStyle}>
-              <span style={{ color: "#8a9bbf", marginRight: "8px", fontSize: "18px" }}>$</span>
-              <input type="number" placeholder="0.00" value={transferAmount} onChange={(e) => setTransferAmount(e.target.value)} style={inputStyle} />
-            </div>
-
-            {/* Available Balance + Use Max */}
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "24px", marginTop: "-8px" }}>
-              <span style={{ color: "#8a9bbf", fontSize: "13px" }}>Available: ${transferFrom.balance.toLocaleString()}</span>
-              <button onClick={() => setTransferAmount(transferFrom.balance.toString())} style={{ background: "none", border: "none", color: "#6366f1", fontWeight: "700", cursor: "pointer", fontSize: "13px" }}>USE MAX</button>
-            </div>
-
-            {/* Buttons */}
-            <div style={{ display: "flex", gap: "12px" }}>
-              <button onClick={() => setShowTransferModal(false)} style={cancelBtnStyle}>Cancel</button>
-              <button onClick={handleTransfer} style={confirmBtnStyle}>Transfer →</button>
-            </div>
+        <ModalOverlay onClose={() => setShowTransferModal(false)}>
+          <div className="flex justify-between items-center mb-1">
+            <h3 className="text-white text-xl font-bold">Transfer Money</h3>
+            <button onClick={() => setShowTransferModal(false)} className="text-[#8a9bbf] text-xl bg-transparent border-none cursor-pointer hover:text-white transition-colors">✕</button>
           </div>
-        </div>
+          <p className="text-[#8a9bbf] text-sm mb-6">Move funds instantly between your wallets.</p>
+
+          <ModalLabel>From Wallet</ModalLabel>
+          <select value={transferFrom.id} onChange={(e) => setTransferFrom(wallets.find((w) => w.id === parseInt(e.target.value)))}
+            className="w-full px-4 py-3.5 rounded-xl bg-[#1e2a3a] border border-white/10 text-white text-sm mb-4 outline-none">
+            {wallets.filter((w) => w.id !== transferTo.id).map((w) => <option key={w.id} value={w.id}>{w.walletName}</option>)}
+          </select>
+
+          <div className="flex justify-center mb-4">
+            <button onClick={handleSwapWallets} className="w-9 h-9 rounded-full bg-blue-500 text-white border-none cursor-pointer hover:bg-blue-400 transition-colors flex items-center justify-center">
+              ⇅
+            </button>
+          </div>
+
+          <ModalLabel>To Wallet</ModalLabel>
+          <select value={transferTo.id} onChange={(e) => setTransferTo(wallets.find((w) => w.id === parseInt(e.target.value)))}
+            className="w-full px-4 py-3.5 rounded-xl bg-[#1e2a3a] border border-white/10 text-white text-sm mb-4 outline-none">
+            {wallets.filter((w) => w.id !== transferFrom.id).map((w) => <option key={w.id} value={w.id}>{w.walletName}</option>)}
+          </select>
+
+          <ModalLabel>Amount</ModalLabel>
+          <InputBox>
+            <span className="text-[#8a9bbf] mr-2 text-lg">$</span>
+            <input type="number" placeholder="0.00" value={transferAmount} onChange={(e) => setTransferAmount(e.target.value)} className={inputCls} />
+          </InputBox>
+
+          <div className="flex justify-between mb-6 -mt-2">
+            <span className="text-[#8a9bbf] text-sm">Available: ${transferFrom.balance.toLocaleString()}</span>
+            <button onClick={() => setTransferAmount(transferFrom.balance.toString())} className="bg-transparent border-none text-indigo-400 font-bold text-sm cursor-pointer hover:text-indigo-300 transition-colors">
+              USE MAX
+            </button>
+          </div>
+
+          <div className="flex gap-3">
+            <CancelBtn onClick={() => setShowTransferModal(false)} />
+            <ConfirmBtn onClick={handleTransfer}>Transfer →</ConfirmBtn>
+          </div>
+        </ModalOverlay>
       )}
 
       {/* ── Add Wallet Modal ── */}
       {showAddModal && (
-        <div onClick={() => setShowAddModal(false)} style={overlayStyle}>
-          <div onClick={(e) => e.stopPropagation()} style={modalStyle}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
-              <h3 style={{ color: "#fff", margin: 0, fontSize: "20px" }}>Add New Wallet</h3>
-              <button onClick={() => setShowAddModal(false)} style={{ background: "none", border: "none", color: "#8a9bbf", fontSize: "20px", cursor: "pointer" }}>✕</button>
-            </div>
-            <label style={labelStyle}>Wallet Name</label>
-            <input placeholder="e.g., PayPal" value={newWallet.walletName} onChange={(e) => setNewWallet((p) => ({ ...p, walletName: e.target.value }))}
-              style={{ width: "100%", padding: "12px 16px", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.1)", background: "#1e2a3a", color: "#fff", fontSize: "14px", marginTop: "8px", marginBottom: "16px", boxSizing: "border-box", outline: "none" }} />
-            <label style={labelStyle}>Initial Balance</label>
-            <div style={inputBoxStyle}>
-              <span style={{ color: "#8a9bbf", marginRight: "8px" }}>$</span>
-              <input type="number" placeholder="0.00" value={newWallet.balance} onChange={(e) => setNewWallet((p) => ({ ...p, balance: e.target.value }))} style={{ ...inputStyle, fontSize: "14px" }} />
-            </div>
-            <label style={labelStyle}>Wallet Color</label>
-            <div style={{ display: "flex", gap: "10px", marginTop: "10px", marginBottom: "24px" }}>
-              {colors.map((color) => (
-                <div key={color} onClick={() => setNewWallet((p) => ({ ...p, iconColor: color }))}
-                  style={{ width: "36px", height: "36px", borderRadius: "50%", background: color, cursor: "pointer", border: newWallet.iconColor === color ? "3px solid #fff" : "3px solid transparent" }} />
-              ))}
-            </div>
-            <div style={{ display: "flex", gap: "12px" }}>
-              <button onClick={() => setShowAddModal(false)} style={cancelBtnStyle}>Cancel</button>
-              <button onClick={handleAddWallet} style={confirmBtnStyle}>Add Wallet</button>
-            </div>
-            <p style={{ color: "#3b4a5a", fontSize: "11px", textAlign: "center", marginTop: "20px", letterSpacing: "1px" }}>SECURELY MANAGED BY SPENDWISE ENGINE</p>
+        <ModalOverlay onClose={() => setShowAddModal(false)}>
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-white text-xl font-bold">Add New Wallet</h3>
+            <button onClick={() => setShowAddModal(false)} className="text-[#8a9bbf] text-xl bg-transparent border-none cursor-pointer hover:text-white transition-colors">✕</button>
           </div>
-        </div>
+
+          <ModalLabel>Wallet Name</ModalLabel>
+          <input placeholder="e.g., PayPal" value={newWallet.walletName}
+            onChange={(e) => setNewWallet((p) => ({ ...p, walletName: e.target.value }))}
+            className="w-full px-4 py-3 rounded-xl border border-white/10 bg-[#1e2a3a] text-white text-sm mb-4 outline-none placeholder:text-[#4a5a6a]" />
+
+          <ModalLabel>Initial Balance</ModalLabel>
+          <InputBox>
+            <span className="text-[#8a9bbf] mr-2">$</span>
+            <input type="number" placeholder="0.00" value={newWallet.balance}
+              onChange={(e) => setNewWallet((p) => ({ ...p, balance: e.target.value }))}
+              className="bg-transparent border-none text-white text-sm outline-none w-full placeholder:text-[#4a5a6a]" />
+          </InputBox>
+
+          <ModalLabel>Wallet Color</ModalLabel>
+          <div className="flex gap-2.5 mt-2 mb-6">
+            {colors.map((color) => (
+              <div key={color} onClick={() => setNewWallet((p) => ({ ...p, iconColor: color }))}
+                className="w-9 h-9 rounded-full cursor-pointer hover:scale-110 transition-transform"
+                style={{ background: color, border: newWallet.iconColor === color ? "3px solid #fff" : "3px solid transparent" }} />
+            ))}
+          </div>
+
+          <div className="flex gap-3">
+            <CancelBtn onClick={() => setShowAddModal(false)} />
+            <ConfirmBtn onClick={handleAddWallet}>Add Wallet</ConfirmBtn>
+          </div>
+
+          <p className="text-[#3b4a5a] text-[10px] text-center mt-5 tracking-widest">SECURELY MANAGED BY SPENDWISE ENGINE</p>
+        </ModalOverlay>
       )}
     </div>
   );

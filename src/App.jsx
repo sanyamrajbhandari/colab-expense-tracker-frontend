@@ -5,6 +5,9 @@ import React from 'react'
 
 const App = () => {
   return <RouterProvider router={routes} />;
+  // return(
+  //   <AddTransaction/>
+  // );
 }
 
 export default App
