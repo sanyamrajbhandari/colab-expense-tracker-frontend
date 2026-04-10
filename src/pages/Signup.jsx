@@ -54,19 +54,26 @@ const Signup = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/signup", // change if needed
+        "http://localhost:5000/api/auth/signup", // change if needed
         {
-          name,
+          fullName: name,
           email,
           password, // backend will hash it
         },
       );
 
       // Success
-      toast.success(response.data.message || "Signup successful!");
+      toast.success(
+        response.data.message || "Signup successful! Logging you in...",
+      );
+
+      // Store token if backend sends it upon signup
+      if (response.data.token) {
+        localStorage.setItem("token", response.data.token);
+      }
 
       setTimeout(() => {
-        navigate("/login");
+        navigate("/dashboard");
       }, 2000);
     } catch (error) {
       // Error handling
