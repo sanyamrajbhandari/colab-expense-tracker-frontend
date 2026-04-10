@@ -140,6 +140,7 @@ const Wallets = () => {
               onClick={() => setShowModal(true)}
               style={{
                 padding: "10px 20px",
+                width: "auto",
                 borderRadius: "10px",
                 background: "#3b82f6",
                 border: "none",
@@ -203,10 +204,13 @@ const Wallets = () => {
                   <button
                     onClick={() => setShowModal(false)}
                     style={{
+                      display: "inline",
+                      width: "auto",
                       background: "none",
                       border: "none",
                       color: "#8a9bbf",
                       fontSize: "20px",
+                      textAlign: "right",
                       cursor: "pointer",
                     }}
                   >
