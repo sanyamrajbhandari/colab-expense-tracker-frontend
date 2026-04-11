@@ -29,7 +29,7 @@ const Login = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/login", // change if needed
+        "http://localhost:5000/api/auth/login", // change if needed
         {
           email,
           password,
