@@ -18,7 +18,7 @@ const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
   { label: "Transactions", icon: ArrowLeftRight, path: "/transactions" },
   { label: "Wallets", icon: Wallet, path: "/wallets" },
-  { label: "Budgets & Goals", icon: Target, path: "/budgets" },
+  { label: "Budgets & Goals", icon: Target, path: "/BudgetsAndGoals" },
   { label: "Analytics", icon: BarChart2, path: "/analytics" },
   { label: "AI Insights", icon: Sparkles, path: "/aiInsights" },
   { label: "Settings", icon: Settings, path: "/settings" },
