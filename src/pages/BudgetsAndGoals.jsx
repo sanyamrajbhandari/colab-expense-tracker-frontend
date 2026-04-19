@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import "../css/BudgetsGoals.css";
 import Sidebar from "../components/Multipage/Sidebar";
-import Topbar from "../components/Multipage/Topbar";
+import DashboardHeader from "../components/Dashboard/DashboardHeader";
 
 const BudgetsAndGoals = () => {
   const [limit, setLimit] = useState(5000);
+  const [selectedMonth, setSelectedMonth] = useState("March 2026");
   const [spending, setSpending] = useState(4100);
 
   const [goals, setGoals] = useState([
@@ -82,78 +83,93 @@ const BudgetsAndGoals = () => {
   };
 
   return (
-    <div className="app">
+    <div className="flex bg-gray-900 min-h-screen text-gray-200">
       <Sidebar activePage="Budgets & Goals" />
 
-      <div className="right-board">
-        <Topbar title="Budgets & Goals" />
-
-        <div className="budgets-container">
-          {/* <h2 className="page-title">Budgets & Goals</h2> */}
-
-          {/* ===== BUDGET ===== */}
-          <div className="budget-card">
-            <div className="budget-header">
-              <h3>Monthly Budget</h3>
-              <button className="btn-budget" onClick={handleSetBudget}>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Top header */}
+        <DashboardHeader
+          title="Budgets & Goals"
+          selectedMonth={selectedMonth}
+          onMonthChange={setSelectedMonth}
+        />
+        <div className="p-6">
+          {/* ===== BUDGET CARD ===== */}
+          <div className="bg-gray-800 p-5 rounded-xl mb-8">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold">Monthly Budget</h3>
+              <button
+                onClick={handleSetBudget}
+                className="bg-blue-600 px-4 py-2 rounded-lg text-white"
+              >
                 Set Budget
               </button>
             </div>
 
-            <div className="budget-info">
+            <div className="flex justify-between my-5">
               <div>
-                <p className="label">Current Spending</p>
-                <h2>${spending.toLocaleString()}</h2>
+                <p className="text-sm text-gray-400">Current Spending</p>
+                <h2 className="text-xl font-bold">
+                  ${spending.toLocaleString()}
+                </h2>
               </div>
 
               <div>
-                <p className="label">Budget Limit</p>
-                <h3>${limit.toLocaleString()}</h3>
+                <p className="text-sm text-gray-400">Budget Limit</p>
+                <h3 className="text-lg font-semibold">
+                  ${limit.toLocaleString()}
+                </h3>
               </div>
             </div>
 
-            <div className="progress-bar">
+            {/* progress */}
+            <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden">
               <div
-                className="progress-fill"
+                className="h-full bg-yellow-500"
                 style={{ width: `${percentUsed}%` }}
               ></div>
             </div>
 
-            <div className="budget-footer">
+            <div className="flex justify-between text-sm mt-2">
               <span>{percentUsed.toFixed(1)}% used</span>
               <span>${limit - spending} remaining</span>
             </div>
           </div>
 
-          {/* ===== GOALS ===== */}
-          <div className="goals-header">
-            <h3>Savings Goals</h3>
-            <button className="btn-budget" onClick={handleAddGoal}>
+          {/* ===== GOALS HEADER ===== */}
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold">Savings Goals</h3>
+
+            <button
+              onClick={handleAddGoal}
+              className="bg-blue-600 px-4 py-2 rounded-lg text-white"
+            >
               + Add Goal
             </button>
           </div>
 
-          <div className="goals-grid">
+          {/* ===== GOALS GRID ===== */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {goals.map((goal, index) => {
               const percent = (goal.saved / goal.target) * 100;
 
               return (
-                <div key={index} className="goal-card">
-                  <div className="goal-top">
-                    <h4>{goal.title}</h4>
+                <div key={index} className="bg-gray-800 p-4 rounded-xl">
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-semibold">{goal.title}</h4>
                     <div
-                      className="goal-icon"
+                      className="w-8 h-8 rounded-md"
                       style={{ backgroundColor: goal.color }}
                     ></div>
                   </div>
 
-                  <p className="goal-amount">
+                  <p className="text-gray-400 mt-2">
                     ${goal.saved} / ${goal.target}
                   </p>
 
-                  <div className="progress-bar small">
+                  <div className="w-full h-2 bg-gray-700 rounded-full my-3">
                     <div
-                      className="progress-fill"
+                      className="h-full rounded-full"
                       style={{
                         width: `${percent}%`,
                         backgroundColor: goal.color,
@@ -161,14 +177,14 @@ const BudgetsAndGoals = () => {
                     ></div>
                   </div>
 
-                  <div className="goal-footer">
+                  <div className="flex justify-between text-xs mb-3">
                     <span>{percent.toFixed(0)}% complete</span>
                     <span>${goal.target - goal.saved} to go</span>
                   </div>
 
                   <button
-                    className="update-btn"
                     onClick={() => handleUpdateGoal(index)}
+                    className="w-full bg-gray-700 py-2 rounded-lg"
                   >
                     Update Progress
                   </button>
@@ -181,90 +197,104 @@ const BudgetsAndGoals = () => {
 
       {/* ===== MODAL ===== */}
       {showModal && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <div className="modal-header">
-              <h3>
+        <div className="fixed inset-0 bg-black/70 flex justify-center items-center z-50">
+          <div className="bg-gray-800 p-6 rounded-xl w-[400px] text-white">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold">
                 {modalType === "budget" && "Monthly Budget"}
                 {modalType === "addGoal" && "Add New Goal"}
                 {modalType === "updateGoal" && "Update Progress"}
               </h3>
-              <span className="close-btn" onClick={handleCloseModal}>
+
+              <span
+                onClick={handleCloseModal}
+                className="cursor-pointer text-xl"
+              >
                 ×
               </span>
             </div>
 
-            <p className="modal-text">
+            <p className="text-gray-400 text-sm mt-2 mb-4">
               {modalType === "budget" && "Set your monthly spending limit."}
               {modalType === "addGoal" && "Create a new savings goal."}
               {modalType === "updateGoal" && "Add progress to your goal."}
             </p>
 
-            {/* ===== BUDGET ===== */}
+            {/* budget */}
             {modalType === "budget" && (
               <>
-                <label className="modal-label">BUDGET AMOUNT</label>
-                <div className="input-box">
-                  <span>$</span>
+                <label className="text-xs text-gray-400">BUDGET AMOUNT</label>
+                <div className="flex items-center bg-gray-700 p-3 rounded-lg mt-2">
+                  <span className="mr-2">$</span>
                   <input
                     type="number"
                     value={tempLimit}
                     onChange={(e) => setTempLimit(e.target.value)}
+                    className="bg-transparent w-full outline-none"
                   />
                 </div>
               </>
             )}
 
-            {/* ===== ADD GOAL ===== */}
+            {/* add goal */}
             {modalType === "addGoal" && (
               <>
-                <label className="modal-label">GOAL NAME</label>
-                <div className="input-box">
+                <label className="text-xs text-gray-400">GOAL NAME</label>
+                <div className="bg-gray-700 p-3 rounded-lg mt-2">
                   <input
                     type="text"
                     placeholder="e.g. New Phone"
                     value={goalTitle}
                     onChange={(e) => setGoalTitle(e.target.value)}
+                    className="bg-transparent w-full outline-none"
                   />
                 </div>
 
-                <label className="modal-label" style={{ marginTop: "10px" }}>
+                <label className="text-xs text-gray-400 mt-3 block">
                   TARGET AMOUNT
                 </label>
-                <div className="input-box">
-                  <span>$</span>
+
+                <div className="flex items-center bg-gray-700 p-3 rounded-lg mt-2">
+                  <span className="mr-2">$</span>
                   <input
                     type="number"
                     value={goalTarget}
                     onChange={(e) => setGoalTarget(e.target.value)}
+                    className="bg-transparent w-full outline-none"
                   />
                 </div>
               </>
             )}
 
-            {/* ===== UPDATE ===== */}
+            {/* update */}
             {modalType === "updateGoal" && (
               <>
-                <label className="modal-label">ADD AMOUNT</label>
-                <div className="input-box">
-                  <span>$</span>
+                <label className="text-xs text-gray-400">ADD AMOUNT</label>
+                <div className="flex items-center bg-gray-700 p-3 rounded-lg mt-2">
+                  <span className="mr-2">$</span>
                   <input
                     type="number"
                     value={updateAmount}
                     onChange={(e) => setUpdateAmount(e.target.value)}
+                    className="bg-transparent w-full outline-none"
                   />
                 </div>
               </>
             )}
 
-            <div className="modal-actions">
-              <button className="cancel-btn" onClick={handleCloseModal}>
+            <div className="flex gap-3 mt-5">
+              <button
+                onClick={handleCloseModal}
+                className="flex-1 bg-gray-700 py-2 rounded-lg"
+              >
                 Cancel
               </button>
-              <button className="save-btn" onClick={handleSave}>
-                {modalType === "budget" && "Set Budget"}
-                {modalType === "addGoal" && "Add Goal"}
-                {modalType === "updateGoal" && "Update"}
+
+              <button
+                onClick={handleSave}
+                className="flex-1 bg-indigo-600 py-2 rounded-lg"
+              >
+                Save
               </button>
             </div>
           </div>

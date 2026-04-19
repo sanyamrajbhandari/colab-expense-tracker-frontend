@@ -1,72 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { TrendingUp } from "lucide-react";
+import axios from "axios";
 
 import Sidebar from "../components/Multipage/Sidebar";
 import DashboardHeader from "../components/Dashboard/DashboardHeader";
-
-// ── Recent transactions shown at the bottom ──
-const RECENT_TRANSACTIONS = [
-  {
-    title: "Grocery Shopping",
-    subtitle: "2026-03-22 10:30 AM",
-    category: "Food & Dining",
-    wallet: "Cash",
-    amount: 125.5,
-    type: "expense",
-    iconBg: "bg-orange-500",
-    initials: "GS",
-  },
-  {
-    title: "Salary",
-    subtitle: "2026-03-20 09:00 AM",
-    category: "Income",
-    wallet: "Bank",
-    amount: 5700,
-    type: "income",
-    iconBg: "bg-green-500",
-    initials: "S",
-  },
-  {
-    title: "Uber Ride",
-    subtitle: "2026-03-19 06:45 PM",
-    category: "Transportation",
-    wallet: "eSewa",
-    amount: 15.75,
-    type: "expense",
-    iconBg: "bg-teal-500",
-    initials: "UR",
-  },
-  {
-    title: "Netflix Subscription",
-    subtitle: "2026-03-18 12:00 PM",
-    category: "Entertainment",
-    wallet: "Bank",
-    amount: 12.99,
-    type: "expense",
-    iconBg: "bg-red-500",
-    initials: "NS",
-  },
-  {
-    title: "Freelance Project",
-    subtitle: "2026-03-17 03:30 PM",
-    category: "Income",
-    wallet: "Bank",
-    amount: 850,
-    type: "income",
-    iconBg: "bg-green-500",
-    initials: "FP",
-  },
-  {
-    title: "Restaurant Dinner",
-    subtitle: "2026-03-16 08:15 PM",
-    category: "Food & Dining",
-    wallet: "Khalti",
-    amount: 68.25,
-    type: "expense",
-    iconBg: "bg-orange-500",
-    initials: "RD",
-  },
-];
+import AddTransactionModal from "../components/Dashboard/AddTransactionModal";
+import { FaPen, FaTrash } from "react-icons/fa";
 
 // ── Category badge colors ──
 const CATEGORY_COLORS = {
@@ -82,15 +21,141 @@ function Dashboard() {
 
   // Which page of recent transactions we are on
   const [currentPage, setCurrentPage] = useState(1);
+  const [recentTransactions, setRecentTransactions] = useState([]);
+
+  // Edit and Delete state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [transactionToEdit, setTransactionToEdit] = useState(null);
+
+  const handleEditClick = (tx) => {
+    setTransactionToEdit(tx);
+    setShowEditModal(true);
+  };
+
+  const handleDeleteClick = async (tx) => {
+    try {
+      const txId = tx._id || tx.id;
+      if (!txId) return;
+      await axios.delete(`http://localhost:5000/api/transactions/${txId}`);
+      setRecentTransactions((prev) => prev.filter((item) => item !== tx));
+    } catch (error) {
+      console.error("Error deleting transaction:", error);
+    }
+  };
+
+  const handleEditSubmit = async (updatedTx) => {
+    try {
+      const txId = updatedTx._id || updatedTx.id;
+      if (!txId) return;
+
+      const response = await axios.put(
+        `http://localhost:5000/api/transactions/${txId}`,
+        updatedTx,
+      );
+      let savedTx = updatedTx;
+      if (response.data && response.data.data) {
+        savedTx = response.data.data;
+      }
+
+      const isIncome = savedTx.type === "income";
+      let iconBg = "bg-gray-500";
+      if (isIncome) iconBg = "bg-green-500";
+      else if (savedTx.category === "Food & Dining") iconBg = "bg-orange-500";
+      else if (savedTx.category === "Transportation") iconBg = "bg-teal-500";
+      else if (savedTx.category === "Entertainment") iconBg = "bg-red-500";
+      else if (savedTx.category === "Shopping") iconBg = "bg-pink-500";
+      else if (savedTx.category === "Bills & Utilities") iconBg = "bg-blue-500";
+
+      const formattedTx = {
+        ...savedTx,
+        wallet: savedTx.paymentMethod,
+        subtitle:
+          savedTx.displayDate ||
+          new Date(savedTx.date).toLocaleString("en-US", {
+            month: "short",
+            day: "2-digit",
+            year: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+          }),
+        iconBg,
+        initials: savedTx.title
+          .split(" ")
+          .map((w) => w[0])
+          .join("")
+          .substring(0, 2)
+          .toUpperCase(),
+      };
+
+      setRecentTransactions((prev) => {
+        const newList = prev.map((item) =>
+          (item.id || item._id) === txId ? formattedTx : item,
+        );
+        return newList.sort((a, b) => new Date(b.date) - new Date(a.date));
+      });
+      setShowEditModal(false);
+    } catch (error) {
+      console.error("Error updating transaction:", error);
+    }
+  };
+
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        const response = await axios.get(
+          "http://localhost:5000/api/dashboard/recent",
+        );
+        if (response.data.success) {
+          const formattedTransactions = response.data.data.map((tx) => {
+            const isIncome = tx.type === "income";
+            let iconBg = "bg-gray-500";
+            if (isIncome) iconBg = "bg-green-500";
+            else if (tx.category === "Food & Dining") iconBg = "bg-orange-500";
+            else if (tx.category === "Transportation") iconBg = "bg-teal-500";
+            else if (tx.category === "Entertainment") iconBg = "bg-red-500";
+            else if (tx.category === "Shopping") iconBg = "bg-pink-500";
+            else if (tx.category === "Bills & Utilities")
+              iconBg = "bg-blue-500";
+
+            return {
+              ...tx,
+              wallet: tx.paymentMethod,
+              subtitle:
+                tx.displayDate ||
+                new Date(tx.date).toLocaleString("en-US", {
+                  month: "short",
+                  day: "2-digit",
+                  year: "numeric",
+                  hour: "numeric",
+                  minute: "2-digit",
+                  hour12: true,
+                }),
+              iconBg,
+              initials: tx.title
+                .split(" ")
+                .map((w) => w[0])
+                .join("")
+                .substring(0, 2)
+                .toUpperCase(),
+            };
+          });
+          setRecentTransactions(formattedTransactions);
+        }
+      } catch (error) {
+        console.error("Error fetching transactions:", error);
+      }
+    };
+    fetchTransactions();
+  }, []);
 
   // Show 6 transactions per page
   const transactionsPerPage = 6;
-  const totalPages = Math.ceil(
-    RECENT_TRANSACTIONS.length / transactionsPerPage,
-  );
+  const totalPages =
+    Math.ceil(recentTransactions.length / transactionsPerPage) || 1;
 
   // Slice the array to only show current page items
-  const visibleTransactions = RECENT_TRANSACTIONS.slice(
+  const visibleTransactions = recentTransactions.slice(
     (currentPage - 1) * transactionsPerPage,
     currentPage * transactionsPerPage,
   );
@@ -259,6 +324,23 @@ function Dashboard() {
                       >
                         {amountText}
                       </span>
+                      {/* Edit & Delete Actions */}
+                      <div className="flex items-center gap-3 ml-2">
+                        <button
+                          onClick={() => handleEditClick(tx)}
+                          className="text-gray-400 hover:text-white transition-colors"
+                          title="Edit"
+                        >
+                          <FaPen size={12} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(tx)}
+                          className="text-red-400 hover:text-red-300 transition-colors"
+                          title="Delete"
+                        >
+                          <FaTrash size={12} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -317,6 +399,15 @@ function Dashboard() {
           </div>
         </div>
       </div>
+
+      {showEditModal && (
+        <AddTransactionModal
+          onClose={() => setShowEditModal(false)}
+          transactionToEdit={transactionToEdit}
+          onEdit={handleEditSubmit}
+          onAdd={() => {}}
+        />
+      )}
     </div>
   );
 }
