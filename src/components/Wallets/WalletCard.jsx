@@ -1,4 +1,4 @@
-import { FaWallet, FaBuilding, FaMobile, FaMobileAlt, FaCreditCard } from "react-icons/fa";
+import { FaWallet, FaBuilding, FaMobile, FaMobileAlt, FaCreditCard, FaTrash } from "react-icons/fa";
 
 const icons = {
   cash: <FaWallet size={20} color="white" />,
@@ -8,16 +8,25 @@ const icons = {
   credit: <FaCreditCard size={20} color="white" />,
 };
 
-const WalletCard = ({ walletName, balance, currency, iconColor, type, onEdit, onTransfer }) => {
+const WalletCard = ({ walletName, balance, currency, iconColor, type, onEdit, onTransfer, onDelete }) => {
   return (
     <div style={{ background: "#1a2235", borderRadius: "16px", padding: "24px", border: "1px solid rgba(255,255,255,0.06)" }}>
-      <div style={{ width: "48px", height: "48px", borderRadius: "12px", background: iconColor, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "16px" }}>
-        {icons[type]}
+      
+      {/* Icon + Delete Button Row */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
+        <div style={{ width: "48px", height: "48px", borderRadius: "12px", background: iconColor, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {icons[type]}
+        </div>
+        <button onClick={onDelete} style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "8px", padding: "6px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }}>
+          <FaTrash size={14} />
+        </button>
       </div>
+
       <p style={{ color: "#8a9bbf", fontSize: "14px", margin: "0 0 6px" }}>{walletName}</p>
       <h2 style={{ color: "#e8edf5", fontSize: "28px", fontWeight: "700", margin: "0 0 20px" }}>
         {currency}{balance.toLocaleString()}
       </h2>
+
       <div style={{ display: "flex", gap: "10px" }}>
         <button onClick={onEdit} style={{ flex: 1, padding: "10px", borderRadius: "10px", background: "transparent", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer" }}>
           Edit
