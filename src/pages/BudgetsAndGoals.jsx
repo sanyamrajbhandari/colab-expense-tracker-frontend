@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import "../css/BudgetsGoals.css";
+// import "../css/BudgetsGoals.css";
 import Sidebar from "../components/Multipage/Sidebar";
 import DashboardHeader from "../components/Dashboard/DashboardHeader";
 
@@ -8,13 +8,15 @@ const BudgetsAndGoals = () => {
   const [selectedMonth, setSelectedMonth] = useState("March 2026");
   const [spending, setSpending] = useState(4100);
 
+  //Savings Goals
+  // Each goal has a title, amount saved so far, a target amount, and a display color
   const [goals, setGoals] = useState([
     { title: "New Laptop", saved: 850, target: 2000, color: "#3b82f6" },
     { title: "Vacation Fund", saved: 1200, target: 3500, color: "#10b981" },
     { title: "Emergency Fund", saved: 5000, target: 10000, color: "#f59e0b" },
   ]);
 
-  // ===== MODAL STATES =====
+  // MODAL STATES
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState("");
 
@@ -26,7 +28,7 @@ const BudgetsAndGoals = () => {
 
   const percentUsed = (spending / limit) * 100;
 
-  // ===== OPEN MODALS =====
+  // OPEN MODALS
   const handleSetBudget = () => {
     setModalType("budget");
     setTempLimit(limit);
@@ -74,7 +76,11 @@ const BudgetsAndGoals = () => {
     if (modalType === "updateGoal") {
       if (!isNaN(updateAmount) && selectedGoalIndex !== null) {
         const updatedGoals = [...goals];
-        updatedGoals[selectedGoalIndex].saved += Number(updateAmount);
+        // Prevent saved from exceeding the target
+        updatedGoals[selectedGoalIndex].saved = Math.min(
+          updatedGoals[selectedGoalIndex].saved + Number(updateAmount),
+          updatedGoals[selectedGoalIndex].target,
+        );
         setGoals(updatedGoals);
       }
     }
@@ -135,7 +141,6 @@ const BudgetsAndGoals = () => {
               <span>${limit - spending} remaining</span>
             </div>
           </div>
-
           {/* ===== GOALS HEADER ===== */}
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold">Savings Goals</h3>
@@ -147,8 +152,7 @@ const BudgetsAndGoals = () => {
               + Add Goal
             </button>
           </div>
-
-          {/* ===== GOALS GRID ===== */}
+          {/* //GOALS GRID */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {goals.map((goal, index) => {
               const percent = (goal.saved / goal.target) * 100;
@@ -171,7 +175,8 @@ const BudgetsAndGoals = () => {
                     <div
                       className="h-full rounded-full"
                       style={{
-                        width: `${percent}%`,
+                        // Cap progress bar at 100%
+                        width: `${Math.min(percent, 100)}%`,
                         backgroundColor: goal.color,
                       }}
                     ></div>
@@ -179,7 +184,8 @@ const BudgetsAndGoals = () => {
 
                   <div className="flex justify-between text-xs mb-3">
                     <span>{percent.toFixed(0)}% complete</span>
-                    <span>${goal.target - goal.saved} to go</span>
+                    {/* Prevent "to go" from going negative */}
+                    <span>${Math.max(0, goal.target - goal.saved)} to go</span>
                   </div>
 
                   <button

@@ -4,15 +4,15 @@ import { useNavigate } from "react-router-dom";
 import { IoMdWallet } from "react-icons/io";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 
-// Axios
+// Axios - used to send HTTP POST request to the signup API
 import axios from "axios";
 
-// Toast
+// Toast - used to show success/error notifications without page alerts
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const Signup = () => {
-  const navigate = useNavigate();
+  const navigate = useNavigate(); // useNavigate hook — used to redirect user to dashboard after successful signup
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
@@ -23,6 +23,9 @@ const Signup = () => {
     confirmPassword: "",
   });
 
+  //HANDLER - Input Change
+  // Uses computed property [e.target.name] to dynamically update the correct
+  // field in formData without needing a separate handler for each input
   const handleChange = (e) => {
     setFormData({
       ...formData,
