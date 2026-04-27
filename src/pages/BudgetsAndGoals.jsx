@@ -53,6 +53,11 @@ const BudgetsAndGoals = () => {
     setShowModal(false);
   };
 
+  // ===== DELETE GOAL =====
+  const handleDeleteGoal = (index) => {
+    setGoals(goals.filter((_, i) => i !== index));
+  };
+
   // ===== SAVE ACTION =====
   const handleSave = () => {
     if (modalType === "budget") {
@@ -76,7 +81,7 @@ const BudgetsAndGoals = () => {
     if (modalType === "updateGoal") {
       if (!isNaN(updateAmount) && selectedGoalIndex !== null) {
         const updatedGoals = [...goals];
-        // Prevent saved from exceeding the target
+        // FIX 3: Prevent saved from exceeding the target
         updatedGoals[selectedGoalIndex].saved = Math.min(
           updatedGoals[selectedGoalIndex].saved + Number(updateAmount),
           updatedGoals[selectedGoalIndex].target,
@@ -175,7 +180,7 @@ const BudgetsAndGoals = () => {
                     <div
                       className="h-full rounded-full"
                       style={{
-                        // Cap progress bar at 100%
+                        // FIX 1: Cap progress bar at 100%
                         width: `${Math.min(percent, 100)}%`,
                         backgroundColor: goal.color,
                       }}
@@ -184,16 +189,24 @@ const BudgetsAndGoals = () => {
 
                   <div className="flex justify-between text-xs mb-3">
                     <span>{percent.toFixed(0)}% complete</span>
-                    {/* Prevent "to go" from going negative */}
+                    {/* FIX 2: Prevent "to go" from going negative */}
                     <span>${Math.max(0, goal.target - goal.saved)} to go</span>
                   </div>
 
-                  <button
-                    onClick={() => handleUpdateGoal(index)}
-                    className="w-full bg-gray-700 py-2 rounded-lg"
-                  >
-                    Update Progress
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleUpdateGoal(index)}
+                      className="w-full bg-gray-700 py-2 rounded-lg"
+                    >
+                      Update Progress
+                    </button>
+                    <button
+                      onClick={() => handleDeleteGoal(index)}
+                      className="bg-red-600 px-3 py-2 rounded-lg text-white"
+                    >
+                      🗑
+                    </button>
+                  </div>
                 </div>
               );
             })}
