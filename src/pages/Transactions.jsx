@@ -1,56 +1,97 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Search, Plus } from "lucide-react";
-import axios from "axios";
-
-// Import all the components we built
+import { toast } from "react-toastify";
 import Sidebar from "../components/Multipage/Sidebar";
 import TransactionsHeader from "../components/Multipage/TransactionsHeader";
 import TransactionTable from "../components/Multipage/TransactionTable";
 import AddTransactionModal from "../components/Dashboard/AddTransactionModal";
+import api from "../utils/api";
+
+const ALL_OPTION = "All";
+
+const buildMonthOptions = () => {
+  const options = [ALL_OPTION];
+  const now = new Date();
+  for (let i = 0; i < 12; i += 1) {
+    const date = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1),
+    );
+    options.push(
+      date.toLocaleString("en-US", {
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC",
+      }),
+    );
+  }
+  return options;
+};
+
+const parseMonthFilter = (monthLabel) => {
+  if (!monthLabel || monthLabel === ALL_OPTION) return null;
+  const [monthName, yearString] = monthLabel.split(" ");
+  const month = new Date(`${monthName} 1, ${yearString}`).getMonth() + 1;
+  const year = Number(yearString);
+  if (!month || Number.isNaN(year)) return null;
+  return { month, year };
+};
+
+const toDisplayDate = (date) =>
+  new Date(date).toLocaleString("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+
+const normalizeTransaction = (tx) => ({
+  ...tx,
+  wallet: tx.paymentMethod,
+  date: toDisplayDate(tx.date),
+});
+
+const sanitizeTransactionPayload = (tx) => ({
+  title: tx.title,
+  amount: Number(tx.amount),
+  type: tx.type,
+  category: tx.category,
+  paymentMethod: tx.paymentMethod || tx.wallet,
+  date: tx.date ? new Date(tx.date).toISOString() : undefined,
+});
 
 function Transactions() {
-  // The full list of transactions
   const [transactions, setTransactions] = useState([]);
-
-  useEffect(() => {
-    const fetchTransactions = async () => {
-      try {
-        const response = await axios.get(
-          "http://localhost:5000/api/dashboard/recent",
-        );
-        if (response.data.success) {
-          const formattedTransactions = response.data.data.map((tx) => ({
-            ...tx,
-            wallet: tx.paymentMethod,
-            date:
-              tx.displayDate ||
-              new Date(tx.date).toLocaleString("en-US", {
-                month: "short",
-                day: "2-digit",
-                year: "numeric",
-                hour: "numeric",
-                minute: "2-digit",
-                hour12: true,
-              }),
-          }));
-          setTransactions(formattedTransactions);
-        }
-      } catch (error) {
-        console.error("Error fetching transactions:", error);
-      }
-    };
-    fetchTransactions();
-  }, []);
-
-  // What the user types in the search box
+  const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-
-  // Which month is selected in the header
-  const [selectedMonth, setSelectedMonth] = useState("March 2026");
-
-  // Whether the Add Transaction popup is open or closed
+  const [selectedMonth, setSelectedMonth] = useState(ALL_OPTION);
   const [showModal, setShowModal] = useState(false);
   const [transactionToEdit, setTransactionToEdit] = useState(null);
+  const monthOptions = useMemo(() => buildMonthOptions(), []);
+
+  const fetchTransactions = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const monthlyFilter = parseMonthFilter(selectedMonth);
+      const response = monthlyFilter
+        ? await api.get("/transactions/monthly", { params: monthlyFilter })
+        : await api.get("/transactions");
+
+      const list = Array.isArray(response.data?.data) ? response.data.data : [];
+      setTransactions(list.map(normalizeTransaction));
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || "Failed to fetch transactions",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedMonth]);
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
 
   const handleEditClick = (tx) => {
     setTransactionToEdit(tx);
@@ -61,10 +102,13 @@ function Transactions() {
     try {
       const txId = tx._id || tx.id;
       if (!txId) return;
-      await axios.delete(`http://localhost:5000/api/transactions/${txId}`);
+      await api.delete(`/transactions/${txId}`);
       setTransactions((prev) => prev.filter((item) => item !== tx));
+      toast.success("Transaction deleted");
     } catch (error) {
-      console.error("Error deleting transaction:", error);
+      toast.error(
+        error.response?.data?.message || "Error deleting transaction",
+      );
     }
   };
 
@@ -72,104 +116,67 @@ function Transactions() {
     try {
       const txId = updatedTx._id || updatedTx.id;
       if (!txId) return;
-
-      const response = await axios.put(
-        `http://localhost:5000/api/transactions/${txId}`,
-        updatedTx,
+      const response = await api.put(
+        `/transactions/${txId}`,
+        sanitizeTransactionPayload(updatedTx),
       );
-      let savedTx = updatedTx;
-      if (response.data && response.data.data) {
-        savedTx = response.data.data;
-      }
-
-      const formattedTx = {
-        ...savedTx,
-        wallet: savedTx.paymentMethod || updatedTx.paymentMethod,
-        date:
-          savedTx.displayDate ||
-          new Date(savedTx.date || updatedTx.date).toLocaleString("en-US", {
-            month: "short",
-            day: "2-digit",
-            year: "numeric",
-            hour: "numeric",
-            minute: "2-digit",
-            hour12: true,
-          }),
-      };
+      const savedTx = response.data?.data || updatedTx;
+      const formattedTx = normalizeTransaction(savedTx);
 
       setTransactions((prev) => {
         const newList = prev.map((item) =>
           (item.id || item._id) === txId ? formattedTx : item,
         );
-        return newList.sort((a, b) => new Date(b.date) - new Date(a.date));
+        return newList.sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+        );
       });
       setShowModal(false);
+      toast.success("Transaction updated");
     } catch (error) {
-      console.error("Error updating transaction:", error);
+      toast.error(
+        error.response?.data?.message || "Error updating transaction",
+      );
     }
   };
 
-  // This runs when the user adds a new transaction in the modal
-  async function handleAddTransaction(newTransaction) {
+  const handleAddTransaction = async (newTransaction) => {
     try {
-      const response = await axios.post(
-        "http://localhost:5000/api/transactions",
-        newTransaction,
+      const response = await api.post(
+        "/transactions",
+        sanitizeTransactionPayload(newTransaction),
       );
+      const savedTx = response.data?.data || newTransaction;
+      const formattedTx = normalizeTransaction(savedTx);
 
-      let savedTx = newTransaction;
-      if (response.data && response.data.data) {
-        savedTx = response.data.data;
-      }
-
-      const formattedTx = {
-        ...savedTx,
-        wallet: savedTx.paymentMethod || newTransaction.paymentMethod,
-        date:
-          savedTx.displayDate ||
-          new Date(savedTx.date || newTransaction.date).toLocaleString(
-            "en-US",
-            {
-              month: "short",
-              day: "2-digit",
-              year: "numeric",
-              hour: "numeric",
-              minute: "2-digit",
-              hour12: true,
-            },
-          ),
-      };
-
-      setTransactions(function (oldList) {
+      setTransactions((oldList) => {
         const newList = [formattedTx, ...oldList];
-        return newList.sort((a, b) => new Date(b.date) - new Date(a.date));
+        return newList.sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+        );
       });
+      toast.success("Transaction added");
     } catch (error) {
-      console.error("Error adding transaction:", error);
+      toast.error(error.response?.data?.message || "Error adding transaction");
     }
-  }
+  };
 
-  // Filter the list — only show transactions whose title matches the search
-  const filteredTransactions = transactions.filter(function (tx) {
-    return tx.title.toLowerCase().includes(searchQuery.toLowerCase());
-  });
+  const filteredTransactions = transactions.filter((tx) =>
+    tx.title.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
 
   return (
     <div className="flex h-screen bg-[#0b0d14] text-white overflow-hidden">
-      {/* Sidebar on the left */}
       <Sidebar activePage="Transactions" />
 
-      {/* Everything on the right */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top header bar */}
         <TransactionsHeader
           selectedMonth={selectedMonth}
           onMonthChange={setSelectedMonth}
+          monthOptions={monthOptions}
         />
 
-        {/* Search bar + Add button row */}
         <div className="flex items-center gap-3 px-6 py-4 border-b border-white/5">
-          {/* Search input */}
           <div className="flex-1 relative">
             <Search
               size={15}
@@ -179,22 +186,18 @@ function Transactions() {
               type="text"
               placeholder="Search by title..."
               value={searchQuery}
-              onChange={function (e) {
-                setSearchQuery(e.target.value);
-              }}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-[#1a1d27] border border-blue-500/40 rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-blue-500"
             />
           </div>
 
-          {/* Month label */}
           <span className="text-sm text-gray-300 bg-[#1a1d27] border border-white/10 px-3 py-2 rounded-lg whitespace-nowrap">
-            {selectedMonth}
+            {isLoading ? "Loading..." : selectedMonth}
           </span>
 
-          {/* Add Transaction button */}
           <button
-            onClick={function () {
-              setTransactionToEdit(null); // Ensure we are in add mode
+            onClick={() => {
+              setTransactionToEdit(null);
               setShowModal(true);
             }}
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg whitespace-nowrap"
@@ -204,7 +207,6 @@ function Transactions() {
           </button>
         </div>
 
-        {/* The transaction table */}
         <div className="flex-1 overflow-auto px-6 py-2">
           <TransactionTable
             transactions={filteredTransactions}
@@ -214,12 +216,9 @@ function Transactions() {
         </div>
       </div>
 
-      {/* The popup modal — only shows when showModal is true */}
       {showModal && (
         <AddTransactionModal
-          onClose={function () {
-            setShowModal(false);
-          }}
+          onClose={() => setShowModal(false)}
           onAdd={handleAddTransaction}
           transactionToEdit={transactionToEdit}
           onEdit={handleEditSubmit}
