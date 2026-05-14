@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
+import api from "../../utils/api";
 
 const CATEGORIES = [
   "Food & Dining",
@@ -12,18 +13,12 @@ const CATEGORIES = [
   "Other",
 ];
 
-const WALLETS = [
-  "Personal Checking (...4290)",
-  "Cash",
-  "eSewa",
-  "Khalti",
-  "Bank",
-];
-
 function AddTransactionModal({ onClose, onAdd, transactionToEdit, onEdit }) {
   const isEditMode = !!transactionToEdit;
+  const [wallets, setWallets] = useState([]);
+  const [isLoadingWallets, setIsLoadingWallets] = useState(true);
+
   // One state variable for each form field
-  // Initialize states with edit data if available
   const [type, setType] = useState(
     isEditMode ? transactionToEdit.type : "expense",
   );
@@ -35,11 +30,31 @@ function AddTransactionModal({ onClose, onAdd, transactionToEdit, onEdit }) {
     isEditMode ? transactionToEdit.category : "Food & Dining",
   );
 
-  // Wallet could be paymentMethod or wallet depending on how it was passed
-  const initialWallet = isEditMode
-    ? transactionToEdit.wallet || transactionToEdit.paymentMethod
-    : "Personal Checking (...4290)";
-  const [wallet, setWallet] = useState(initialWallet);
+  const [wallet, setWallet] = useState("");
+
+  useEffect(() => {
+    const fetchWallets = async () => {
+      try {
+        const response = await api.get("/wallets");
+        const fetchedWallets = response.data?.data || [];
+        setWallets(fetchedWallets);
+
+        if (isEditMode) {
+          setWallet(
+            transactionToEdit.wallet || transactionToEdit.paymentMethod || "",
+          );
+        } else if (fetchedWallets.length > 0) {
+          setWallet(fetchedWallets[0].name || fetchedWallets[0].title || "");
+        }
+      } catch (error) {
+        console.error("Failed to fetch wallets:", error);
+      } finally {
+        setIsLoadingWallets(false);
+      }
+    };
+
+    fetchWallets();
+  }, [isEditMode, transactionToEdit]);
 
   // Try to parse the date and time from the transaction to be edited
   const now = new Date();
@@ -216,21 +231,32 @@ function AddTransactionModal({ onClose, onAdd, transactionToEdit, onEdit }) {
           <p className="text-gray-500 text-xs uppercase tracking-widest mb-1.5">
             Wallet
           </p>
-          <select
-            value={wallet}
-            onChange={function (e) {
-              setWallet(e.target.value);
-            }}
-            className="w-full bg-[#1a1d27] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 appearance-none"
-          >
-            {WALLETS.map(function (w) {
-              return (
-                <option key={w} value={w}>
-                  {w}
-                </option>
-              );
-            })}
-          </select>
+          {isLoadingWallets ? (
+            <div className="w-full bg-[#1a1d27] border border-white/10 rounded-lg px-3 py-2 text-gray-500 text-sm">
+              Loading wallets...
+            </div>
+          ) : wallets.length === 0 ? (
+            <div className="w-full bg-[#1a1d27] border border-red-500/50 rounded-lg px-3 py-2 text-red-400 text-sm">
+              No wallets found. Please create a wallet first.
+            </div>
+          ) : (
+            <select
+              value={wallet}
+              onChange={function (e) {
+                setWallet(e.target.value);
+              }}
+              className="w-full bg-[#1a1d27] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 appearance-none"
+            >
+              {wallets.map(function (w) {
+                const walletName = w.name || w.title;
+                return (
+                  <option key={w._id || walletName} value={walletName}>
+                    {walletName}
+                  </option>
+                );
+              })}
+            </select>
+          )}
         </div>
 
         {/* Date + Time side by side */}
@@ -273,7 +299,12 @@ function AddTransactionModal({ onClose, onAdd, transactionToEdit, onEdit }) {
           </button>
           <button
             onClick={handleSubmit}
-            className="flex-1 py-2 rounded-full bg-blue-600 text-white text-sm font-medium hover:bg-blue-500"
+            disabled={isLoadingWallets || wallets.length === 0}
+            className={`flex-1 py-2 rounded-full text-white text-sm font-medium ${
+              isLoadingWallets || wallets.length === 0
+                ? "bg-gray-600 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-500"
+            }`}
           >
             {isEditMode ? "Edit transaction" : "Add Transaction"}
           </button>
