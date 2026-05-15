@@ -1,8 +1,64 @@
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import WalletCard from "../components/Wallets/WalletCard";
 import Sidebar from "../components/Multipage/Sidebar";
 import Dashboard from "../components/Dashboard/DashboardHeader";
 import { FaUniversity } from "react-icons/fa";
+import { toast } from "react-toastify";
+import api from "../utils/api";
+
+/** Dark overlay backdrop for all modals. Closes on outside click. */
+const ModalOverlay = ({ onClose, children }) => (
+  <div
+    onClick={onClose}
+    className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100]"
+  >
+    {/* Stop click from bubbling to overlay when clicking inside modal */}
+    <div
+      onClick={(e) => e.stopPropagation()}
+      className="bg-[#151f2e] rounded-2xl p-8 w-[420px] border border-white/[0.08]"
+    >
+      {children}
+    </div>
+  </div>
+);
+
+/** Small uppercase label used above inputs in modals */
+const ModalLabel = ({ children }) => (
+  <p className="text-[#8a9bbf] text-[11px] tracking-widest uppercase mb-2">
+    {children}
+  </p>
+);
+
+/** Dark input container box used for number/text inputs in modals */
+const InputBox = ({ children }) => (
+  <div className="flex items-center bg-[#1e2a3a] rounded-xl border border-white/10 px-4 py-3 mb-4">
+    {children}
+  </div>
+);
+
+/** Reusable Cancel button used in all modals */
+const CancelBtn = ({ onClick }) => (
+  <button
+    onClick={onClick}
+    className="flex-1 py-3.5 rounded-full bg-[#1e2a3a] border border-white/10 text-[#8a9bbf] text-sm cursor-pointer hover:bg-[#263347] transition-colors"
+  >
+    Cancel
+  </button>
+);
+
+/** Reusable gradient Confirm button used in all modals */
+const ConfirmBtn = ({ onClick, children }) => (
+  <button
+    onClick={onClick}
+    className="flex-1 py-3.5 rounded-full bg-gradient-to-br from-indigo-500 to-blue-500 text-white font-bold text-sm cursor-pointer hover:opacity-90 transition-opacity"
+  >
+    {children}
+  </button>
+);
+
+/** Shared input className for all text/number inputs inside InputBox */
+const inputCls =
+  "bg-transparent border-none text-white text-lg outline-none w-full placeholder:text-[#4a5a6a]";
 
 /**
  * Wallets Page Component
@@ -16,17 +72,9 @@ import { FaUniversity } from "react-icons/fa";
  * - Delete a wallet
  */
 const Wallets = () => {
-
-  // ─── State ───────────────────────────────────────────────────────────────────
-
-  /** List of all wallets with their details */
-  const [wallets, setWallets] = useState([
-    { id: 1, walletName: "Cash",        balance: 520.5,   currency: "$", iconColor: "#0fc98a", type: "cash"   },
-    { id: 2, walletName: "Bank",        balance: 8450.75, currency: "$", iconColor: "#3b82f6", type: "bank"   },
-    { id: 3, walletName: "eSewa",       balance: 1250,    currency: "$", iconColor: "#f59e0b", type: "esewa"  },
-    { id: 4, walletName: "Khalti",      balance: 680.25,  currency: "$", iconColor: "#760af1", type: "khalti" },
-    { id: 5, walletName: "Credit Card", balance: 3200,    currency: "$", iconColor: "#ef4444", type: "credit" },
-  ]);
+  const [wallets, setWallets] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   /** Controls visibility of the Add Wallet modal */
   const [showAddModal,      setShowAddModal]      = useState(false);
@@ -65,7 +113,48 @@ const Wallets = () => {
   const colors = ["#a5b4fc", "#f9a8d4", "#c4b5fd", "#fca5a5"];
 
   /** Calculated total of all wallet balances */
-  const totalBalance = wallets.reduce((sum, w) => sum + w.balance, 0);
+  const totalBalance = useMemo(
+    () => wallets.reduce((sum, w) => sum + (w.balance || 0), 0),
+    [wallets],
+  );
+
+  const getWalletType = (name = "") => {
+    const normalized = name.toLowerCase();
+    if (normalized.includes("bank")) return "bank";
+    if (normalized.includes("esewa")) return "esewa";
+    if (normalized.includes("khalti")) return "khalti";
+    if (normalized.includes("credit")) return "credit";
+    return "cash";
+  };
+
+  const mapWallet = (wallet) => ({
+    id: wallet._id,
+    walletName: wallet.name,
+    balance: Number(wallet.balance || 0),
+    currency: "$",
+    iconColor: wallet.color || "#a5b4fc",
+    type: getWalletType(wallet.name),
+    raw: wallet,
+  });
+
+  const fetchWallets = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const response = await api.get("/wallets");
+      const walletList = Array.isArray(response.data?.data)
+        ? response.data.data.map(mapWallet)
+        : [];
+      setWallets(walletList);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to load wallets");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchWallets();
+  }, [fetchWallets]);
 
   // ─── Handlers ────────────────────────────────────────────────────────────────
 
@@ -83,12 +172,26 @@ const Wallets = () => {
    * Updates the balance of the wallet being edited.
    * Closes the modal after updating.
    */
-  const handleUpdateBalance = () => {
-    if (!newBalance) return; // Prevent update if input is empty
-    setWallets((prev) =>
-      prev.map((w) => w.id === editingWallet.id ? { ...w, balance: parseFloat(newBalance) } : w)
-    );
-    setShowEditModal(false);
+  const handleUpdateBalance = async () => {
+    if (newBalance === "" || Number(newBalance) < 0) return;
+    setIsSubmitting(true);
+    try {
+      const response = await api.put(`/wallets/${editingWallet.id}`, {
+        balance: Number(newBalance),
+      });
+      const updatedWallet = response.data?.data;
+      setWallets((prev) =>
+        prev.map((w) =>
+          w.id === editingWallet.id ? mapWallet(updatedWallet) : w,
+        ),
+      );
+      setShowEditModal(false);
+      toast.success("Wallet balance updated");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to update wallet");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   /**
@@ -115,17 +218,34 @@ const Wallets = () => {
    * Executes the transfer between two wallets.
    * Validates: amount must be positive and not exceed available balance.
    */
-  const handleTransfer = () => {
+  const handleTransfer = async () => {
     const amount = parseFloat(transferAmount);
     if (!amount || amount <= 0 || amount > transferFrom.balance) return; // Validation check
-    setWallets((prev) =>
-      prev.map((w) => {
-        if (w.id === transferFrom.id) return { ...w, balance: w.balance - amount }; // Deduct from sender
-        if (w.id === transferTo.id)   return { ...w, balance: w.balance + amount }; // Add to receiver
-        return w;
-      })
-    );
-    setShowTransferModal(false);
+    setIsSubmitting(true);
+    try {
+      const response = await api.post("/wallets/transfer", {
+        fromWalletId: transferFrom.id,
+        toWalletId: transferTo.id,
+        amount,
+      });
+
+      const fromWallet = mapWallet(response.data?.data?.fromWallet || {});
+      const toWallet = mapWallet(response.data?.data?.toWallet || {});
+
+      setWallets((prev) =>
+        prev.map((w) => {
+          if (w.id === fromWallet.id) return fromWallet;
+          if (w.id === toWallet.id) return toWallet;
+          return w;
+        }),
+      );
+      setShowTransferModal(false);
+      toast.success("Transfer completed");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Transfer failed");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   /**
@@ -133,72 +253,45 @@ const Wallets = () => {
    * Validates that walletName and balance are not empty.
    * Resets the form and closes the modal after successful addition.
    */
-  const handleAddWallet = () => {
-    if (!newWallet.walletName || !newWallet.balance) return; // Prevent adding empty wallet
-    setWallets((prev) => [
-      ...prev,
-      {
-        id: Date.now(), // Unique ID using timestamp
-        walletName: newWallet.walletName,
-        balance: parseFloat(newWallet.balance),
-        currency: "$",
-        iconColor: newWallet.iconColor,
-        type: "cash",
-      },
-    ]);
-    // Reset form and close modal
-    setNewWallet({ walletName: "", balance: "", iconColor: "#a5b4fc" });
-    setShowAddModal(false);
+  const handleAddWallet = async () => {
+    if (!newWallet.walletName.trim() || newWallet.balance === "") return;
+    setIsSubmitting(true);
+    try {
+      const response = await api.post("/wallets", {
+        name: newWallet.walletName.trim(),
+        initialBalance: Number(newWallet.balance),
+        color: newWallet.iconColor,
+      });
+
+      setWallets((prev) => [mapWallet(response.data?.data), ...prev]);
+      setNewWallet({ walletName: "", balance: "", iconColor: "#a5b4fc" });
+      setShowAddModal(false);
+      toast.success("Wallet created");
+    } catch (error) {
+      const message =
+        error.response?.data?.message || "Failed to create wallet";
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   /**
    * Deletes a wallet from the list by its ID.
    * @param {number} id - The ID of the wallet to delete
    */
-  const handleDeleteWallet = (id) => {
-    setWallets((prev) => prev.filter((w) => w.id !== id));
+  const handleDeleteWallet = async (id) => {
+    setIsSubmitting(true);
+    try {
+      await api.delete(`/wallets/${id}`);
+      setWallets((prev) => prev.filter((w) => w.id !== id));
+      toast.success("Wallet deleted");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to delete wallet");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
-
-  // ─── Reusable Modal Components ───────────────────────────────────────────────
-
-  /** Dark overlay backdrop for all modals. Closes on outside click. */
-  const ModalOverlay = ({ onClose, children }) => (
-    <div onClick={onClose} className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100]">
-      {/* Stop click from bubbling to overlay when clicking inside modal */}
-      <div onClick={(e) => e.stopPropagation()} className="bg-[#151f2e] rounded-2xl p-8 w-[420px] border border-white/[0.08]">
-        {children}
-      </div>
-    </div>
-  );
-
-  /** Small uppercase label used above inputs in modals */
-  const ModalLabel = ({ children }) => (
-    <p className="text-[#8a9bbf] text-[11px] tracking-widest uppercase mb-2">{children}</p>
-  );
-
-  /** Dark input container box used for number/text inputs in modals */
-  const InputBox = ({ children }) => (
-    <div className="flex items-center bg-[#1e2a3a] rounded-xl border border-white/10 px-4 py-3 mb-4">
-      {children}
-    </div>
-  );
-
-  /** Shared input className for all text/number inputs inside InputBox */
-  const inputCls = "bg-transparent border-none text-white text-lg outline-none w-full placeholder:text-[#4a5a6a]";
-
-  /** Reusable Cancel button used in all modals */
-  const CancelBtn = ({ onClick }) => (
-    <button onClick={onClick} className="flex-1 py-3.5 rounded-full bg-[#1e2a3a] border border-white/10 text-[#8a9bbf] text-sm cursor-pointer hover:bg-[#263347] transition-colors">
-      Cancel
-    </button>
-  );
-
-  /** Reusable gradient Confirm button used in all modals */
-  const ConfirmBtn = ({ onClick, children }) => (
-    <button onClick={onClick} className="flex-1 py-3.5 rounded-full bg-gradient-to-br from-indigo-500 to-blue-500 text-white font-bold text-sm cursor-pointer hover:opacity-90 transition-opacity">
-      {children}
-    </button>
-  );
 
   // ─── Render ──────────────────────────────────────────────────────────────────
 
@@ -232,17 +325,25 @@ const Wallets = () => {
           </div>
 
           {/* ── Wallet Cards Grid: renders each wallet as a WalletCard ── */}
-          <div className="grid grid-cols-3 gap-5">
-            {wallets.map((wallet) => (
-              <WalletCard
-                key={wallet.id}
-                {...wallet}
-                onEdit={() => handleOpenEdit(wallet)}
-                onTransfer={() => handleOpenTransfer(wallet)}
-                onDelete={() => handleDeleteWallet(wallet.id)}
-              />
-            ))}
-          </div>
+          {isLoading ? (
+            <p className="text-[#8a9bbf]">Loading wallets...</p>
+          ) : wallets.length === 0 ? (
+            <p className="text-[#8a9bbf]">
+              No wallets yet. Add your first wallet to get started.
+            </p>
+          ) : (
+            <div className="grid grid-cols-3 gap-5">
+              {wallets.map((wallet) => (
+                <WalletCard
+                  key={wallet.id}
+                  {...wallet}
+                  onEdit={() => handleOpenEdit(wallet)}
+                  onTransfer={() => handleOpenTransfer(wallet)}
+                  onDelete={() => handleDeleteWallet(wallet.id)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -282,7 +383,9 @@ const Wallets = () => {
 
           <div className="flex gap-3">
             <CancelBtn onClick={() => setShowEditModal(false)} />
-            <ConfirmBtn onClick={handleUpdateBalance}>Update Balance</ConfirmBtn>
+            <ConfirmBtn onClick={handleUpdateBalance}>
+              {isSubmitting ? "Updating..." : "Update Balance"}
+            </ConfirmBtn>
           </div>
         </ModalOverlay>
       )}
@@ -300,7 +403,9 @@ const Wallets = () => {
           <ModalLabel>From Wallet</ModalLabel>
           <select
             value={transferFrom.id}
-            onChange={(e) => setTransferFrom(wallets.find((w) => w.id === parseInt(e.target.value)))}
+            onChange={(e) =>
+              setTransferFrom(wallets.find((w) => w.id === e.target.value))
+            }
             className="w-full px-4 py-3.5 rounded-xl bg-[#1e2a3a] border border-white/10 text-white text-sm mb-4 outline-none"
           >
             {wallets.filter((w) => w.id !== transferTo.id).map((w) => (
@@ -319,7 +424,9 @@ const Wallets = () => {
           <ModalLabel>To Wallet</ModalLabel>
           <select
             value={transferTo.id}
-            onChange={(e) => setTransferTo(wallets.find((w) => w.id === parseInt(e.target.value)))}
+            onChange={(e) =>
+              setTransferTo(wallets.find((w) => w.id === e.target.value))
+            }
             className="w-full px-4 py-3.5 rounded-xl bg-[#1e2a3a] border border-white/10 text-white text-sm mb-4 outline-none"
           >
             {wallets.filter((w) => w.id !== transferFrom.id).map((w) => (
@@ -353,7 +460,9 @@ const Wallets = () => {
 
           <div className="flex gap-3">
             <CancelBtn onClick={() => setShowTransferModal(false)} />
-            <ConfirmBtn onClick={handleTransfer}>Transfer →</ConfirmBtn>
+            <ConfirmBtn onClick={handleTransfer}>
+              {isSubmitting ? "Transferring..." : "Transfer →"}
+            </ConfirmBtn>
           </div>
         </ModalOverlay>
       )}
@@ -403,7 +512,9 @@ const Wallets = () => {
 
           <div className="flex gap-3">
             <CancelBtn onClick={() => setShowAddModal(false)} />
-            <ConfirmBtn onClick={handleAddWallet}>Add Wallet</ConfirmBtn>
+            <ConfirmBtn onClick={handleAddWallet}>
+              {isSubmitting ? "Adding..." : "Add Wallet"}
+            </ConfirmBtn>
           </div>
 
           {/* Footer note */}

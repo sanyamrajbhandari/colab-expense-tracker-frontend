@@ -1,16 +1,14 @@
 import { useState } from "react";
 import { ChevronDown, User } from "lucide-react";
 
-const MONTHS = [
-  "January 2026",
-  "February 2026",
-  "March 2026",
-  "April 2026",
-  "May 2026",
-  "June 2026",
-];
+const DEFAULT_MONTH_OPTIONS = ["All"];
 
-function DashboardHeader({ selectedMonth, onMonthChange, title }) {
+function DashboardHeader({
+  selectedMonth,
+  onMonthChange,
+  title,
+  monthOptions = DEFAULT_MONTH_OPTIONS,
+}) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   return (
@@ -35,7 +33,7 @@ function DashboardHeader({ selectedMonth, onMonthChange, title }) {
           {/* Dropdown list */}
           {dropdownOpen && (
             <div className="absolute right-0 mt-1 w-44 bg-[#1a1d27] border border-white/10 rounded-lg shadow-xl z-50 overflow-hidden">
-              {MONTHS.map(function (month) {
+              {monthOptions.map(function (month) {
                 const isSelected = month === selectedMonth;
                 const itemStyle = isSelected
                   ? "w-full text-left px-4 py-2 text-sm bg-blue-600 text-white"
