@@ -7,59 +7,55 @@ import AiInsights from "../pages/AiInsights";
 import Settings from "../pages/Settings";
 import Login from "../pages/Login";
 import Signup from "../pages/Signup";
+import ProtectedRoute from "./ProtectedRoute";
 
 import { createBrowserRouter, Navigate } from "react-router-dom";
-import { Sidebar } from "lucide-react";
 
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <Navigate to="/login" replace />, // start from login
+    element: <Navigate to="/dashboard" replace />,
   },
-
   {
     path: "/login",
     element: <Login />,
   },
-
   {
     path: "/signup",
     element: <Signup />,
   },
-
   {
-    path: "/dashboard",
-    element: <Dashboard />,
-  },
-
-  {
-    path: "/transactions",
-    element: <Transactions />,
-  },
-
-  {
-    path: "/wallets",
-    element: <Wallets />,
-  },
-
-  {
-    path: "/BudgetsAndGoals",
-    element: <BudgetsAndGoals />,
-  },
-
-  {
-    path: "/analytics",
-    element: <Analytics />,
-  },
-
-  {
-    path: "/aiInsights",
-    element: <AiInsights />,
-  },
-
-  {
-    path: "/settings",
-    element: <Settings />,
+    element: <ProtectedRoute />,
+    children: [
+      {
+        path: "/dashboard",
+        element: <Dashboard />,
+      },
+      {
+        path: "/transactions",
+        element: <Transactions />,
+      },
+      {
+        path: "/wallets",
+        element: <Wallets />,
+      },
+      {
+        path: "/BudgetsAndGoals",
+        element: <BudgetsAndGoals />,
+      },
+      {
+        path: "/analytics",
+        element: <Analytics />,
+      },
+      {
+        path: "/aiInsights",
+        element: <AiInsights />,
+      },
+      {
+        path: "/settings",
+        element: <Settings />,
+      },
+    ],
   },
 ]);
 

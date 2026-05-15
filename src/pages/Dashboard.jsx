@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { TrendingUp } from "lucide-react";
-import axios from "axios";
+import { toast } from "react-toastify";
 
 // Import chart.js components
 import {
@@ -22,6 +22,7 @@ import Sidebar from "../components/Multipage/Sidebar";
 import DashboardHeader from "../components/Dashboard/DashboardHeader";
 import AddTransactionModal from "../components/Dashboard/AddTransactionModal";
 import { FaPen, FaTrash } from "react-icons/fa";
+import api from "../utils/api";
 
 // ── Register all chart.js parts we need ──
 // Without this, the charts won't work
@@ -47,12 +48,43 @@ const CATEGORY_COLORS = {
   Shopping: "text-pink-400",
 };
 
+const ALL_OPTION = "All";
+
+const buildMonthOptions = () => {
+  const options = [ALL_OPTION];
+  const now = new Date();
+  for (let i = 0; i < 12; i += 1) {
+    const date = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1),
+    );
+    options.push(
+      date.toLocaleString("en-US", {
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC",
+      }),
+    );
+  }
+  return options;
+};
+
+const parseMonthFilter = (monthLabel) => {
+  if (!monthLabel || monthLabel === ALL_OPTION) return null;
+  const [monthName, yearString] = monthLabel.split(" ");
+  const month = new Date(`${monthName} 1, ${yearString}`).getMonth() + 1;
+  const year = Number(yearString);
+  if (!month || Number.isNaN(year)) return null;
+  return { month, year };
+};
+
 function Dashboard() {
-  const [selectedMonth, setSelectedMonth] = useState("March 2026");
+  const [selectedMonth, setSelectedMonth] = useState(ALL_OPTION);
   const [currentPage, setCurrentPage] = useState(1);
   const [recentTransactions, setRecentTransactions] = useState([]);
   const [showEditModal, setShowEditModal] = useState(false);
   const [transactionToEdit, setTransactionToEdit] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const monthOptions = useMemo(() => buildMonthOptions(), []);
 
   // ── Chart data state ──
   const [lineChartData, setLineChartData] = useState(null);
@@ -64,129 +96,38 @@ function Dashboard() {
     setShowEditModal(true);
   };
 
-  const handleDeleteClick = async (tx) => {
-    try {
-      const txId = tx._id || tx.id;
-      if (!txId) return;
-      await axios.delete(`http://localhost:5000/api/transactions/${txId}`);
-      setRecentTransactions((prev) => prev.filter((item) => item !== tx));
-    } catch (error) {
-      console.error("Error deleting transaction:", error);
-    }
-  };
+  const getFormattedTransaction = (tx) => {
+    const isIncome = tx.type === "income";
+    let iconBg = "bg-gray-500";
+    if (isIncome) iconBg = "bg-green-500";
+    else if (tx.category === "Food & Dining") iconBg = "bg-orange-500";
+    else if (tx.category === "Transportation") iconBg = "bg-teal-500";
+    else if (tx.category === "Entertainment") iconBg = "bg-red-500";
+    else if (tx.category === "Shopping") iconBg = "bg-pink-500";
+    else if (tx.category === "Bills & Utilities") iconBg = "bg-blue-500";
 
-  const handleEditSubmit = async (updatedTx) => {
-    try {
-      const txId = updatedTx._id || updatedTx.id;
-      if (!txId) return;
-
-      const response = await axios.put(
-        `http://localhost:5000/api/transactions/${txId}`,
-        updatedTx,
-      );
-      let savedTx = updatedTx;
-      if (response.data && response.data.data) {
-        savedTx = response.data.data;
-      }
-
-      const isIncome = savedTx.type === "income";
-      let iconBg = "bg-gray-500";
-      if (isIncome) iconBg = "bg-green-500";
-      else if (savedTx.category === "Food & Dining") iconBg = "bg-orange-500";
-      else if (savedTx.category === "Transportation") iconBg = "bg-teal-500";
-      else if (savedTx.category === "Entertainment") iconBg = "bg-red-500";
-      else if (savedTx.category === "Shopping") iconBg = "bg-pink-500";
-      else if (savedTx.category === "Bills & Utilities") iconBg = "bg-blue-500";
-
-      const formattedTx = {
-        ...savedTx,
-        wallet: savedTx.paymentMethod,
-        subtitle:
-          savedTx.displayDate ||
-          new Date(savedTx.date).toLocaleString("en-US", {
-            month: "short",
-            day: "2-digit",
-            year: "numeric",
-            hour: "numeric",
-            minute: "2-digit",
-            hour12: true,
-          }),
-        iconBg,
-        initials: savedTx.title
-          .split(" ")
-          .map((w) => w[0])
-          .join("")
-          .substring(0, 2)
-          .toUpperCase(),
-      };
-
-      setRecentTransactions((prev) => {
-        const newList = prev.map((item) =>
-          (item.id || item._id) === txId ? formattedTx : item,
-        );
-        return newList.sort((a, b) => new Date(b.date) - new Date(a.date));
-      });
-      setShowEditModal(false);
-    } catch (error) {
-      console.error("Error updating transaction:", error);
-    }
-  };
-
-  // ── Fetch recent transactions from backend ──
-  useEffect(() => {
-    const fetchTransactions = async () => {
-      try {
-        const response = await axios.get(
-          "http://localhost:5000/api/dashboard/recent",
-        );
-        if (response.data.success) {
-          const formattedTransactions = response.data.data.map((tx) => {
-            const isIncome = tx.type === "income";
-            let iconBg = "bg-gray-500";
-            if (isIncome) iconBg = "bg-green-500";
-            else if (tx.category === "Food & Dining") iconBg = "bg-orange-500";
-            else if (tx.category === "Transportation") iconBg = "bg-teal-500";
-            else if (tx.category === "Entertainment") iconBg = "bg-red-500";
-            else if (tx.category === "Shopping") iconBg = "bg-pink-500";
-            else if (tx.category === "Bills & Utilities")
-              iconBg = "bg-blue-500";
-
-            return {
-              ...tx,
-              wallet: tx.paymentMethod,
-              subtitle:
-                tx.displayDate ||
-                new Date(tx.date).toLocaleString("en-US", {
-                  month: "short",
-                  day: "2-digit",
-                  year: "numeric",
-                  hour: "numeric",
-                  minute: "2-digit",
-                  hour12: true,
-                }),
-              iconBg,
-              initials: tx.title
-                .split(" ")
-                .map((w) => w[0])
-                .join("")
-                .substring(0, 2)
-                .toUpperCase(),
-            };
-          });
-          setRecentTransactions(formattedTransactions);
-
-          // ── Build chart data from the transactions ──
-          buildChartData(formattedTransactions);
-        }
-      } catch (error) {
-        console.error("Error fetching transactions:", error);
-      }
+    return {
+      ...tx,
+      wallet: tx.paymentMethod,
+      subtitle: new Date(tx.date).toLocaleString("en-US", {
+        month: "short",
+        day: "2-digit",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      }),
+      iconBg,
+      initials: tx.title
+        .split(" ")
+        .map((w) => w[0])
+        .join("")
+        .substring(0, 2)
+        .toUpperCase(),
     };
-    fetchTransactions();
-  }, []);
+  };
 
-  // ── This function takes transactions and builds all 3 chart datasets ──
-  function buildChartData(transactions) {
+  const buildChartData = useCallback((transactions) => {
     // ── 1. LINE CHART — Income vs Expense over last 6 months ──
     // Get last 6 month names (e.g. ["Nov", "Dec", "Jan", "Feb", "Mar", "Apr"])
     const months = [];
@@ -304,7 +245,120 @@ function Dashboard() {
         },
       ],
     });
-  }
+  }, []);
+
+  const fetchTransactions = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const monthlyFilter = parseMonthFilter(selectedMonth);
+      const response = monthlyFilter
+        ? await api.get("/transactions/monthly", { params: monthlyFilter })
+        : await api.get("/transactions");
+
+      const list = Array.isArray(response.data?.data) ? response.data.data : [];
+      const formattedTransactions = list.map(getFormattedTransaction);
+      setRecentTransactions(formattedTransactions);
+      setCurrentPage(1);
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || "Error fetching transactions",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedMonth, buildChartData]);
+
+  const handleDeleteClick = async (tx) => {
+    try {
+      const txId = tx._id || tx.id;
+      if (!txId) return;
+      await api.delete(`/transactions/${txId}`);
+      setRecentTransactions((prev) => prev.filter((item) => item !== tx));
+      toast.success("Transaction deleted");
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || "Error deleting transaction",
+      );
+    }
+  };
+
+  const handleEditSubmit = async (updatedTx) => {
+    try {
+      const txId = updatedTx._id || updatedTx.id;
+      if (!txId) return;
+
+      const response = await api.put(
+        `/transactions/${txId}`,
+        updatedTx,
+      );
+      let savedTx = updatedTx;
+      if (response.data && response.data.data) {
+        savedTx = response.data.data;
+      }
+
+      const isIncome = savedTx.type === "income";
+      let iconBg = "bg-gray-500";
+      if (isIncome) iconBg = "bg-green-500";
+      else if (savedTx.category === "Food & Dining") iconBg = "bg-orange-500";
+      else if (savedTx.category === "Transportation") iconBg = "bg-teal-500";
+      else if (savedTx.category === "Entertainment") iconBg = "bg-red-500";
+      else if (savedTx.category === "Shopping") iconBg = "bg-pink-500";
+      else if (savedTx.category === "Bills & Utilities") iconBg = "bg-blue-500";
+
+      const formattedTx = {
+        ...savedTx,
+        wallet: savedTx.paymentMethod,
+        subtitle:
+          savedTx.displayDate ||
+          new Date(savedTx.date).toLocaleString("en-US", {
+            month: "short",
+            day: "2-digit",
+            year: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+          }),
+        iconBg,
+        initials: savedTx.title
+          .split(" ")
+          .map((w) => w[0])
+          .join("")
+          .substring(0, 2)
+          .toUpperCase(),
+      };
+
+      setRecentTransactions((prev) => {
+        const newList = prev.map((item) =>
+          (item.id || item._id) === txId ? formattedTx : item,
+        );
+        return newList.sort((a, b) => new Date(b.date) - new Date(a.date));
+      });
+      setShowEditModal(false);
+      toast.success("Transaction updated");
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || "Error updating transaction",
+      );
+    }
+  };
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
+
+  useEffect(() => {
+    buildChartData(recentTransactions);
+  }, [recentTransactions, buildChartData]);
+
+  const totals = useMemo(() => {
+    let income = 0;
+    let expense = 0;
+    recentTransactions.forEach((tx) => {
+      if (tx.type === "income") income += tx.amount;
+      else expense += tx.amount;
+    });
+    return { income, expense, net: income - expense };
+  }, [recentTransactions]);
 
   // ── Shared chart options to make them look dark and clean ──
 
@@ -379,7 +433,7 @@ function Dashboard() {
   };
 
   // Pagination
-  const transactionsPerPage = 6;
+  const transactionsPerPage = 5;
   const totalPages =
     Math.ceil(recentTransactions.length / transactionsPerPage) || 1;
   const visibleTransactions = recentTransactions.slice(
@@ -398,6 +452,7 @@ function Dashboard() {
           title="Dashboard"
           selectedMonth={selectedMonth}
           onMonthChange={setSelectedMonth}
+          monthOptions={monthOptions}
         />
 
         <div className="flex-1 overflow-auto p-6 flex flex-col gap-5">
@@ -407,20 +462,26 @@ function Dashboard() {
               Total Net Worth
             </p>
             <div className="flex items-center gap-3 mb-4">
-              <h2 className="text-white text-3xl font-bold">$2,450</h2>
+              <h2 className="text-white text-3xl font-bold">
+                ${totals.net.toLocaleString()}
+              </h2>
               <span className="flex items-center gap-1 bg-white/20 text-white text-xs font-semibold px-2 py-1 rounded-full">
                 <TrendingUp size={12} />
-                +12.5%
+                {selectedMonth}
               </span>
             </div>
             <div className="flex gap-8">
               <div>
                 <p className="text-blue-200 text-xs mb-0.5">Income</p>
-                <p className="text-white font-semibold text-sm">$6,550</p>
+                <p className="text-white font-semibold text-sm">
+                  ${totals.income.toLocaleString()}
+                </p>
               </div>
               <div>
                 <p className="text-blue-200 text-xs mb-0.5">Expense</p>
-                <p className="text-white font-semibold text-sm">$4,100</p>
+                <p className="text-white font-semibold text-sm">
+                  ${totals.expense.toLocaleString()}
+                </p>
               </div>
             </div>
           </div>
@@ -439,7 +500,9 @@ function Dashboard() {
                 ) : (
                   // Show a loading message until data arrives
                   <div className="w-full h-full flex items-center justify-center">
-                    <p className="text-gray-600 text-xs">Loading...</p>
+                    <p className="text-gray-600 text-xs">
+                      {isLoading ? "Loading..." : "No data"}
+                    </p>
                   </div>
                 )}
               </div>
@@ -464,7 +527,9 @@ function Dashboard() {
                   <Bar data={barChartData} options={barOptions} />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <p className="text-gray-600 text-xs">Loading...</p>
+                    <p className="text-gray-600 text-xs">
+                      {isLoading ? "Loading..." : "No data"}
+                    </p>
                   </div>
                 )}
               </div>
@@ -484,7 +549,9 @@ function Dashboard() {
                   <Doughnut data={donutChartData} options={donutOptions} />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <p className="text-gray-600 text-xs">Loading...</p>
+                    <p className="text-gray-600 text-xs">
+                      {isLoading ? "Loading..." : "No data"}
+                    </p>
                   </div>
                 )}
               </div>
