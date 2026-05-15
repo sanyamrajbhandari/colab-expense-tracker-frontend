@@ -1,154 +1,182 @@
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Search, Plus } from "lucide-react";
-
-// Import all the components we built
+import { toast } from "react-toastify";
 import Sidebar from "../components/Multipage/Sidebar";
 import TransactionsHeader from "../components/Multipage/TransactionsHeader";
 import TransactionTable from "../components/Multipage/TransactionTable";
 import AddTransactionModal from "../components/Dashboard/AddTransactionModal";
+import api from "../utils/api";
 
-// This is the starting list of transactions shown on the page
-const INITIAL_TRANSACTIONS = [
-  {
-    title: "Grocery Shopping",
-    category: "Food & Dining",
-    wallet: "Cash",
-    amount: 125.5,
-    date: "Mar 22, 2026",
-    type: "expense",
-  },
-  {
-    title: "Salary",
-    category: "Income",
-    wallet: "Bank",
-    amount: 5700,
-    date: "Mar 20, 2026",
-    type: "income",
-  },
-  {
-    title: "Uber Ride",
-    category: "Transportation",
-    wallet: "eSewa",
-    amount: 15.75,
-    date: "Mar 19, 2026",
-    type: "expense",
-  },
-  {
-    title: "Netflix Subscription",
-    category: "Entertainment",
-    wallet: "Bank",
-    amount: 12.99,
-    date: "Mar 18, 2026",
-    type: "expense",
-  },
-  {
-    title: "Freelance Project",
-    category: "Income",
-    wallet: "Bank",
-    amount: 850,
-    date: "Mar 17, 2026",
-    type: "income",
-  },
-  {
-    title: "Restaurant Dinner",
-    category: "Food & Dining",
-    wallet: "Khalti",
-    amount: 68.25,
-    date: "Mar 16, 2026",
-    type: "expense",
-  },
-  {
-    title: "Electricity Bill",
-    category: "Bills & Utilities",
-    wallet: "Bank",
-    amount: 95,
-    date: "Mar 15, 2026",
-    type: "expense",
-  },
-  {
-    title: "Online Shopping",
-    category: "Shopping",
-    wallet: "eSewa",
-    amount: 210.5,
-    date: "Mar 14, 2026",
-    type: "expense",
-  },
-  {
-    title: "Gas Station",
-    category: "Transportation",
-    wallet: "Cash",
-    amount: 45,
-    date: "Mar 13, 2026",
-    type: "expense",
-  },
-  {
-    title: "Coffee Shop",
-    category: "Food & Dining",
-    wallet: "Khalti",
-    amount: 8.5,
-    date: "Mar 12, 2026",
-    type: "expense",
-  },
-  {
-    title: "Client Payment",
-    category: "Income",
-    wallet: "Bank",
-    amount: 1200,
-    date: "Mar 11, 2026",
-    type: "income",
-  },
-  {
-    title: "Gym Membership",
-    category: "Health & Fitness",
-    wallet: "Bank",
-    amount: 50,
-    date: "Mar 10, 2026",
-    type: "expense",
-  },
-];
+const ALL_OPTION = "All";
+
+const buildMonthOptions = () => {
+  const options = [ALL_OPTION];
+  const now = new Date();
+  for (let i = 0; i < 12; i += 1) {
+    const date = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1),
+    );
+    options.push(
+      date.toLocaleString("en-US", {
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC",
+      }),
+    );
+  }
+  return options;
+};
+
+const parseMonthFilter = (monthLabel) => {
+  if (!monthLabel || monthLabel === ALL_OPTION) return null;
+  const [monthName, yearString] = monthLabel.split(" ");
+  const month = new Date(`${monthName} 1, ${yearString}`).getMonth() + 1;
+  const year = Number(yearString);
+  if (!month || Number.isNaN(year)) return null;
+  return { month, year };
+};
+
+const toDisplayDate = (date) =>
+  new Date(date).toLocaleString("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+
+const normalizeTransaction = (tx) => ({
+  ...tx,
+  wallet: tx.paymentMethod,
+  date: toDisplayDate(tx.date),
+});
+
+const sanitizeTransactionPayload = (tx) => ({
+  title: tx.title,
+  amount: Number(tx.amount),
+  type: tx.type,
+  category: tx.category,
+  paymentMethod: tx.paymentMethod || tx.wallet,
+  date: tx.date ? new Date(tx.date).toISOString() : undefined,
+});
 
 function Transactions() {
-  // The full list of transactions
-  const [transactions, setTransactions] = useState(INITIAL_TRANSACTIONS);
-
-  // What the user types in the search box
+  const [transactions, setTransactions] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-
-  // Which month is selected in the header
-  const [selectedMonth, setSelectedMonth] = useState("March 2026");
-
-  // Whether the Add Transaction popup is open or closed
+  const [selectedMonth, setSelectedMonth] = useState(ALL_OPTION);
   const [showModal, setShowModal] = useState(false);
+  const [transactionToEdit, setTransactionToEdit] = useState(null);
+  const monthOptions = useMemo(() => buildMonthOptions(), []);
 
-  // This runs when the user adds a new transaction in the modal
-  function handleAddTransaction(newTransaction) {
-    // Add the new one to the top of the list
-    setTransactions(function (oldList) {
-      return [newTransaction, ...oldList];
-    });
-  }
+  const fetchTransactions = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const monthlyFilter = parseMonthFilter(selectedMonth);
+      const response = monthlyFilter
+        ? await api.get("/transactions/monthly", { params: monthlyFilter })
+        : await api.get("/transactions");
 
-  // Filter the list — only show transactions whose title matches the search
-  const filteredTransactions = transactions.filter(function (tx) {
-    return tx.title.toLowerCase().includes(searchQuery.toLowerCase());
-  });
+      const list = Array.isArray(response.data?.data) ? response.data.data : [];
+      setTransactions(list.map(normalizeTransaction));
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || "Failed to fetch transactions",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedMonth]);
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
+
+  const handleEditClick = (tx) => {
+    setTransactionToEdit(tx);
+    setShowModal(true);
+  };
+
+  const handleDeleteClick = async (tx) => {
+    try {
+      const txId = tx._id || tx.id;
+      if (!txId) return;
+      await api.delete(`/transactions/${txId}`);
+      setTransactions((prev) => prev.filter((item) => item !== tx));
+      toast.success("Transaction deleted");
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || "Error deleting transaction",
+      );
+    }
+  };
+
+  const handleEditSubmit = async (updatedTx) => {
+    try {
+      const txId = updatedTx._id || updatedTx.id;
+      if (!txId) return;
+      const response = await api.put(
+        `/transactions/${txId}`,
+        sanitizeTransactionPayload(updatedTx),
+      );
+      const savedTx = response.data?.data || updatedTx;
+      const formattedTx = normalizeTransaction(savedTx);
+
+      setTransactions((prev) => {
+        const newList = prev.map((item) =>
+          (item.id || item._id) === txId ? formattedTx : item,
+        );
+        return newList.sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+        );
+      });
+      setShowModal(false);
+      toast.success("Transaction updated");
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || "Error updating transaction",
+      );
+    }
+  };
+
+  const handleAddTransaction = async (newTransaction) => {
+    try {
+      const response = await api.post(
+        "/transactions",
+        sanitizeTransactionPayload(newTransaction),
+      );
+      const savedTx = response.data?.data || newTransaction;
+      const formattedTx = normalizeTransaction(savedTx);
+
+      setTransactions((oldList) => {
+        const newList = [formattedTx, ...oldList];
+        return newList.sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+        );
+      });
+      toast.success("Transaction added");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Error adding transaction");
+    }
+  };
+
+  const filteredTransactions = transactions.filter((tx) =>
+    tx.title.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
 
   return (
     <div className="flex h-screen bg-[#0b0d14] text-white overflow-hidden">
-      {/* Sidebar on the left */}
       <Sidebar activePage="Transactions" />
 
-      {/* Everything on the right */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top header bar */}
         <TransactionsHeader
           selectedMonth={selectedMonth}
           onMonthChange={setSelectedMonth}
+          monthOptions={monthOptions}
         />
 
-        {/* Search bar + Add button row */}
         <div className="flex items-center gap-3 px-6 py-4 border-b border-white/5">
-          {/* Search input */}
           <div className="flex-1 relative">
             <Search
               size={15}
@@ -158,21 +186,18 @@ function Transactions() {
               type="text"
               placeholder="Search by title..."
               value={searchQuery}
-              onChange={function (e) {
-                setSearchQuery(e.target.value);
-              }}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-[#1a1d27] border border-blue-500/40 rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-blue-500"
             />
           </div>
 
-          {/* Month label */}
           <span className="text-sm text-gray-300 bg-[#1a1d27] border border-white/10 px-3 py-2 rounded-lg whitespace-nowrap">
-            {selectedMonth}
+            {isLoading ? "Loading..." : selectedMonth}
           </span>
 
-          {/* Add Transaction button */}
           <button
-            onClick={function () {
+            onClick={() => {
+              setTransactionToEdit(null);
               setShowModal(true);
             }}
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg whitespace-nowrap"
@@ -182,19 +207,21 @@ function Transactions() {
           </button>
         </div>
 
-        {/* The transaction table */}
         <div className="flex-1 overflow-auto px-6 py-2">
-          <TransactionTable transactions={filteredTransactions} />
+          <TransactionTable
+            transactions={filteredTransactions}
+            onEdit={handleEditClick}
+            onDelete={handleDeleteClick}
+          />
         </div>
       </div>
 
-      {/* The popup modal — only shows when showModal is true */}
       {showModal && (
         <AddTransactionModal
-          onClose={function () {
-            setShowModal(false);
-          }}
+          onClose={() => setShowModal(false)}
           onAdd={handleAddTransaction}
+          transactionToEdit={transactionToEdit}
+          onEdit={handleEditSubmit}
         />
       )}
     </div>

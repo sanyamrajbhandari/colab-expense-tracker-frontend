@@ -1,3 +1,5 @@
+import { FaPen, FaTrash } from "react-icons/fa";
+
 // Color for the category badge (the little pill label)
 const CATEGORY_COLORS = {
   "Food & Dining": "text-orange-400 bg-orange-400/10",
@@ -36,7 +38,7 @@ function getInitials(title) {
 }
 
 // This is one single row in the table
-function TransactionRow({ transaction }) {
+function TransactionRow({ transaction, onEdit, onDelete }) {
   const isIncome = transaction.type === "income";
 
   // Income shows green with a + sign, expense shows red
@@ -90,14 +92,34 @@ function TransactionRow({ transaction }) {
 
       {/* Date column */}
       <td className="py-3 px-4 text-gray-400 text-sm text-right">
-        {transaction.date}
+        <div className="flex items-center justify-end gap-3">
+          <span>{transaction.date}</span>
+          {onEdit && onDelete && (
+            <>
+              <button
+                onClick={() => onEdit(transaction)}
+                className="text-gray-400 hover:text-white transition-colors"
+                title="Edit"
+              >
+                <FaPen size={12} />
+              </button>
+              <button
+                onClick={() => onDelete(transaction)}
+                className="text-red-400 hover:text-red-300 transition-colors"
+                title="Delete"
+              >
+                <FaTrash size={12} />
+              </button>
+            </>
+          )}
+        </div>
       </td>
     </tr>
   );
 }
 
 // This is the full table with all rows
-function TransactionTable({ transactions }) {
+function TransactionTable({ transactions, onEdit, onDelete }) {
   return (
     <div className="overflow-auto">
       <table className="w-full">
@@ -125,7 +147,14 @@ function TransactionTable({ transactions }) {
         {/* All the transaction rows */}
         <tbody>
           {transactions.map(function (tx, index) {
-            return <TransactionRow key={index} transaction={tx} />;
+            return (
+              <TransactionRow
+                key={index}
+                transaction={tx}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
+            );
           })}
         </tbody>
       </table>

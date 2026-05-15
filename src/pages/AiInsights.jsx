@@ -7,6 +7,7 @@ import {
 } from "react-icons/fi";
 import Sidebar from "../components/Multipage/Sidebar";
 import Dashboard from "../components/Dashboard/DashboardHeader";
+
 import { toast } from "react-toastify";
 import api from "../utils/api";
 
@@ -159,6 +160,7 @@ const AiInsights = () => {
               </div>
             </div>
 
+
             {/* Monthly Financial Summary */}
             <div className="flex flex-col gap-4 rounded-xl border border-slate-700 bg-slate-800 p-6">
               <div className="mb-1 flex flex-wrap items-start justify-between gap-4">
@@ -174,11 +176,13 @@ const AiInsights = () => {
                       {monthlySummary
                         ? `AI-generated insights for ${monthlySummary.monthLabel}`
                         : "Generate insights to view your monthly summary"}
+
                     </p>
                   </div>
                 </div>
                 <button
                   type="button"
+
                   onClick={generateInsights}
                   className="flex items-center gap-1.5 rounded-md border border-slate-700 bg-transparent px-3 py-1.5 text-xs font-medium text-slate-300 transition-colors hover:bg-slate-700 hover:text-slate-50"
                 >
@@ -203,6 +207,7 @@ const AiInsights = () => {
                   <span className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
                     Savings Rate
                   </span>
+
                   <span className="text-lg font-bold text-emerald-500">
                     {monthlySummary ? `${monthlySummary.savingsRate}%` : "-"}
                   </span>
@@ -311,6 +316,7 @@ const AiInsights = () => {
                   ) : (
                     <li>Generate insights to view smart recommendations.</li>
                   )}
+
                 </ul>
               </div>
             </div>
