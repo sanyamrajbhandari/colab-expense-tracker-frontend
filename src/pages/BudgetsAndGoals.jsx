@@ -1,37 +1,90 @@
-import React, { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 // import "../css/BudgetsGoals.css";
 import Sidebar from "../components/Multipage/Sidebar";
 import DashboardHeader from "../components/Dashboard/DashboardHeader";
+import { toast } from "react-toastify";
+import api from "../utils/api";
 
 const BudgetsAndGoals = () => {
-  const [limit, setLimit] = useState(5000);
+  const [limit, setLimit] = useState(0);
+  const [budgetCategory, setBudgetCategory] = useState("");
   const [selectedMonth, setSelectedMonth] = useState("March 2026");
-  const [spending, setSpending] = useState(4100);
+  const [spending, setSpending] = useState(0);
+  const [remainingAmount, setRemainingAmount] = useState(0);
+  const [serverMonth, setServerMonth] = useState(null);
+  const [serverYear, setServerYear] = useState(null);
+  const [isLoadingBudget, setIsLoadingBudget] = useState(true);
 
   //Savings Goals
-  // Each goal has a title, amount saved so far, a target amount, and a display color
-  const [goals, setGoals] = useState([
-    { title: "New Laptop", saved: 850, target: 2000, color: "#3b82f6" },
-    { title: "Vacation Fund", saved: 1200, target: 3500, color: "#10b981" },
-    { title: "Emergency Fund", saved: 5000, target: 10000, color: "#f59e0b" },
-  ]);
+  const [goals, setGoals] = useState([]);
+  const [isLoadingGoals, setIsLoadingGoals] = useState(true);
 
   // MODAL STATES
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState("");
 
   const [tempLimit, setTempLimit] = useState(limit);
+  const [tempCategory, setTempCategory] = useState("");
   const [goalTitle, setGoalTitle] = useState("");
   const [goalTarget, setGoalTarget] = useState("");
   const [updateAmount, setUpdateAmount] = useState("");
-  const [selectedGoalIndex, setSelectedGoalIndex] = useState(null);
+  const [selectedGoal, setSelectedGoal] = useState(null);
 
-  const percentUsed = (spending / limit) * 100;
+  const percentUsed = useMemo(() => {
+    if (!limit) return 0;
+    return (spending / limit) * 100;
+  }, [spending, limit]);
+
+  const fetchBudgetStatus = async (categoryValue) => {
+    setIsLoadingBudget(true);
+    try {
+      const response = await api.get("/budgets/current/status", {
+        params: categoryValue ? { category: categoryValue } : undefined,
+      });
+      const data = response.data?.data;
+      setLimit(Number(data?.budgetAmount || 0));
+      setSpending(Number(data?.totalExpense || 0));
+      setRemainingAmount(Number(data?.remainingAmount || 0));
+      setServerMonth(data?.month || null);
+      setServerYear(data?.year || null);
+    } catch (error) {
+      if (error.response?.status === 404) {
+        setLimit(0);
+        setSpending(0);
+        setRemainingAmount(0);
+        // toast.info("No budget set yet for this month/category.");
+      } else {
+        toast.error(
+          error.response?.data?.message || "Failed to load budget status",
+        );
+      }
+    } finally {
+      setIsLoadingBudget(false);
+    }
+  };
+
+  const fetchGoals = async () => {
+    setIsLoadingGoals(true);
+    try {
+      const response = await api.get("/saving-goals");
+      setGoals(response.data?.data || []);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to load goals");
+    } finally {
+      setIsLoadingGoals(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBudgetStatus(budgetCategory);
+    fetchGoals();
+  }, [budgetCategory]);
 
   // OPEN MODALS
   const handleSetBudget = () => {
     setModalType("budget");
     setTempLimit(limit);
+    setTempCategory(budgetCategory);
     setShowModal(true);
   };
 
@@ -42,11 +95,30 @@ const BudgetsAndGoals = () => {
     setShowModal(true);
   };
 
-  const handleUpdateGoal = (index) => {
-    setModalType("updateGoal");
-    setSelectedGoalIndex(index);
+  const handleEditGoal = (goal) => {
+    setModalType("editGoal");
+    setSelectedGoal(goal);
+    setGoalTitle(goal.title);
+    setGoalTarget(goal.targetAmount);
+    setShowModal(true);
+  };
+
+  const handleUpdateProgress = (goal) => {
+    setModalType("updateProgress");
+    setSelectedGoal(goal);
     setUpdateAmount("");
     setShowModal(true);
+  };
+
+  const handleDeleteGoal = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this goal?")) return;
+    try {
+      await api.delete(`/saving-goals/${id}`);
+      toast.success("Goal deleted successfully");
+      fetchGoals();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to delete goal");
+    }
   };
 
   const handleCloseModal = () => {
@@ -54,38 +126,49 @@ const BudgetsAndGoals = () => {
   };
 
   // ===== SAVE ACTION =====
-  const handleSave = () => {
-    if (modalType === "budget") {
-      if (!isNaN(tempLimit) && tempLimit > 0) {
-        setLimit(Number(tempLimit));
+  const handleSave = async () => {
+    try {
+      if (modalType === "budget") {
+        if (!isNaN(tempLimit) && Number(tempLimit) >= 0) {
+          await api.post("/budgets/current", {
+            amount: Number(tempLimit),
+            category: tempCategory?.trim() || null,
+          });
+          setBudgetCategory(tempCategory?.trim() || "");
+          await fetchBudgetStatus(tempCategory?.trim() || "");
+          toast.success("Current month budget saved successfully");
+        }
+      } else if (modalType === "addGoal") {
+        if (goalTitle && goalTarget && !isNaN(goalTarget)) {
+          await api.post("/saving-goals", {
+            title: goalTitle,
+            targetAmount: Number(goalTarget),
+          });
+          toast.success("Goal created successfully");
+          fetchGoals();
+        }
+      } else if (modalType === "editGoal") {
+        if (goalTitle && goalTarget && !isNaN(goalTarget)) {
+          await api.put(`/saving-goals/${selectedGoal._id}`, {
+            title: goalTitle,
+            targetAmount: Number(goalTarget),
+          });
+          toast.success("Goal updated successfully");
+          fetchGoals();
+        }
+      } else if (modalType === "updateProgress") {
+        if (!isNaN(updateAmount) && updateAmount > 0) {
+          await api.patch(`/saving-goals/${selectedGoal._id}/progress`, {
+            amount: Number(updateAmount),
+          });
+          toast.success("Progress updated successfully");
+          fetchGoals();
+        }
       }
+      setShowModal(false);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Operation failed");
     }
-
-    if (modalType === "addGoal") {
-      if (goalTitle && goalTarget && !isNaN(goalTarget)) {
-        const newGoal = {
-          title: goalTitle,
-          saved: 0,
-          target: Number(goalTarget),
-          color: "#6366f1",
-        };
-        setGoals([...goals, newGoal]);
-      }
-    }
-
-    if (modalType === "updateGoal") {
-      if (!isNaN(updateAmount) && selectedGoalIndex !== null) {
-        const updatedGoals = [...goals];
-        // Prevent saved from exceeding the target
-        updatedGoals[selectedGoalIndex].saved = Math.min(
-          updatedGoals[selectedGoalIndex].saved + Number(updateAmount),
-          updatedGoals[selectedGoalIndex].target,
-        );
-        setGoals(updatedGoals);
-      }
-    }
-
-    setShowModal(false);
   };
 
   return (
@@ -112,18 +195,36 @@ const BudgetsAndGoals = () => {
               </button>
             </div>
 
+            <p className="text-xs text-gray-400 mt-3">
+              Budget month/year are server-side UTC current month.
+              {serverMonth && serverYear
+                ? ` Current: ${serverMonth}/${serverYear}`
+                : ""}
+            </p>
+
+            <div className="mt-4">
+              <label className="text-xs text-gray-400">CATEGORY FILTER</label>
+              <input
+                type="text"
+                value={budgetCategory}
+                onChange={(e) => setBudgetCategory(e.target.value)}
+                placeholder="Leave empty for overall budget"
+                className="w-full mt-2 px-3 py-2 rounded-lg bg-gray-700 outline-none text-sm"
+              />
+            </div>
+
             <div className="flex justify-between my-5">
               <div>
                 <p className="text-sm text-gray-400">Current Spending</p>
                 <h2 className="text-xl font-bold">
-                  ${spending.toLocaleString()}
+                  {isLoadingBudget ? "Loading..." : `$${spending.toLocaleString()}`}
                 </h2>
               </div>
 
               <div>
                 <p className="text-sm text-gray-400">Budget Limit</p>
                 <h3 className="text-lg font-semibold">
-                  ${limit.toLocaleString()}
+                  {isLoadingBudget ? "Loading..." : `$${limit.toLocaleString()}`}
                 </h3>
               </div>
             </div>
@@ -138,7 +239,7 @@ const BudgetsAndGoals = () => {
 
             <div className="flex justify-between text-sm mt-2">
               <span>{percentUsed.toFixed(1)}% used</span>
-              <span>${limit - spending} remaining</span>
+              <span>${remainingAmount.toLocaleString()} remaining</span>
             </div>
           </div>
           {/* ===== GOALS HEADER ===== */}
@@ -153,51 +254,74 @@ const BudgetsAndGoals = () => {
             </button>
           </div>
           {/* //GOALS GRID */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {goals.map((goal, index) => {
-              const percent = (goal.saved / goal.target) * 100;
+          {isLoadingGoals ? (
+            <div className="text-center py-10 text-gray-500">Loading goals...</div>
+          ) : goals.length === 0 ? (
+            <div className="text-center py-10 text-gray-500">No savings goals found. Click "+ Add Goal" to create one.</div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {goals.map((goal) => {
+                const percent = goal.progressPercentage || 0;
+                const goalColor = "#6366f1"; // Default color
 
-              return (
-                <div key={index} className="bg-gray-800 p-4 rounded-xl">
-                  <div className="flex justify-between items-center">
-                    <h4 className="font-semibold">{goal.title}</h4>
-                    <div
-                      className="w-8 h-8 rounded-md"
-                      style={{ backgroundColor: goal.color }}
-                    ></div>
+                return (
+                  <div key={goal._id} className="bg-gray-800 p-4 rounded-xl relative group">
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-semibold">{goal.title}</h4>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleEditGoal(goal)}
+                          className="text-gray-400 hover:text-blue-400 transition-colors"
+                          title="Edit Goal"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteGoal(goal._id)}
+                          className="text-gray-400 hover:text-red-400 transition-colors"
+                          title="Delete Goal"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                        </button>
+                      </div>
+                    </div>
+
+                    <p className="text-gray-400 mt-2">
+                      ${goal.savedAmount} / ${goal.targetAmount}
+                    </p>
+
+                    <div className="w-full h-2 bg-gray-700 rounded-full my-3">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${Math.min(percent, 100)}%`,
+                          backgroundColor: goalColor,
+                        }}
+                      ></div>
+                    </div>
+
+                    <div className="flex justify-between text-xs mb-3">
+                      <span>{percent.toFixed(0)}% complete</span>
+                      <span>${Math.max(0, goal.amountLeft)} to go</span>
+                    </div>
+
+                    <button
+                      onClick={() => handleUpdateProgress(goal)}
+                      className="w-full bg-gray-700 py-2 rounded-lg hover:bg-gray-600 transition-colors"
+                    >
+                      Update Progress
+                    </button>
+                    
+                    {goal.isCompleted && (
+                      <div className="absolute top-2 right-2 bg-green-500 text-white text-[10px] px-2 py-0.5 rounded-full">
+                        Completed
+                      </div>
+                    )}
                   </div>
-
-                  <p className="text-gray-400 mt-2">
-                    ${goal.saved} / ${goal.target}
-                  </p>
-
-                  <div className="w-full h-2 bg-gray-700 rounded-full my-3">
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        // Cap progress bar at 100%
-                        width: `${Math.min(percent, 100)}%`,
-                        backgroundColor: goal.color,
-                      }}
-                    ></div>
-                  </div>
-
-                  <div className="flex justify-between text-xs mb-3">
-                    <span>{percent.toFixed(0)}% complete</span>
-                    {/* Prevent "to go" from going negative */}
-                    <span>${Math.max(0, goal.target - goal.saved)} to go</span>
-                  </div>
-
-                  <button
-                    onClick={() => handleUpdateGoal(index)}
-                    className="w-full bg-gray-700 py-2 rounded-lg"
-                  >
-                    Update Progress
-                  </button>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
@@ -209,7 +333,8 @@ const BudgetsAndGoals = () => {
               <h3 className="text-lg font-semibold">
                 {modalType === "budget" && "Monthly Budget"}
                 {modalType === "addGoal" && "Add New Goal"}
-                {modalType === "updateGoal" && "Update Progress"}
+                {modalType === "editGoal" && "Edit Goal"}
+                {modalType === "updateProgress" && "Update Progress"}
               </h3>
 
               <span
@@ -223,7 +348,8 @@ const BudgetsAndGoals = () => {
             <p className="text-gray-400 text-sm mt-2 mb-4">
               {modalType === "budget" && "Set your monthly spending limit."}
               {modalType === "addGoal" && "Create a new savings goal."}
-              {modalType === "updateGoal" && "Add progress to your goal."}
+              {modalType === "editGoal" && "Modify your savings goal details."}
+              {modalType === "updateProgress" && "Add progress to your goal."}
             </p>
 
             {/* budget */}
@@ -239,11 +365,23 @@ const BudgetsAndGoals = () => {
                     className="bg-transparent w-full outline-none"
                   />
                 </div>
+                <label className="text-xs text-gray-400 mt-3 block">
+                  CATEGORY (OPTIONAL)
+                </label>
+                <div className="bg-gray-700 p-3 rounded-lg mt-2">
+                  <input
+                    type="text"
+                    value={tempCategory}
+                    onChange={(e) => setTempCategory(e.target.value)}
+                    placeholder="e.g. Food & Dining"
+                    className="bg-transparent w-full outline-none"
+                  />
+                </div>
               </>
             )}
 
-            {/* add goal */}
-            {modalType === "addGoal" && (
+            {/* add or edit goal */}
+            {(modalType === "addGoal" || modalType === "editGoal") && (
               <>
                 <label className="text-xs text-gray-400">GOAL NAME</label>
                 <div className="bg-gray-700 p-3 rounded-lg mt-2">
@@ -272,8 +410,8 @@ const BudgetsAndGoals = () => {
               </>
             )}
 
-            {/* update */}
-            {modalType === "updateGoal" && (
+            {/* update progress */}
+            {modalType === "updateProgress" && (
               <>
                 <label className="text-xs text-gray-400">ADD AMOUNT</label>
                 <div className="flex items-center bg-gray-700 p-3 rounded-lg mt-2">
