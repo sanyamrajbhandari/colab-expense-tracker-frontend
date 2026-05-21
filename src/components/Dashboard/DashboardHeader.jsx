@@ -32,9 +32,7 @@ function DashboardHeader({
       {/* Page title with mobile hamburger */}
       <div className="flex items-center gap-3">
         <button
-          onClick={() =>
-            window.dispatchEvent(new CustomEvent("toggle-sidebar"))
-          }
+          onClick={() => window.dispatchEvent(new CustomEvent("toggle-sidebar"))}
           className="p-1.5 text-gray-400 hover:text-white rounded-lg hover:bg-[#1a1d27] md:hidden cursor-pointer flex items-center justify-center"
         >
           <Menu size={20} />
@@ -83,11 +81,7 @@ function DashboardHeader({
 
         {/* Avatar */}
         <div className="flex items-center gap-2">
-          {userName && (
-            <span className="text-sm font-medium text-slate-300">
-              {userName}
-            </span>
-          )}
+          {userName && <span className="text-sm font-medium text-slate-300">{userName}</span>}
           <button className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
             <User size={16} className="text-white" />
           </button>

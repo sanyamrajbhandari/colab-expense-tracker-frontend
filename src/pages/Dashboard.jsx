@@ -21,17 +21,17 @@ import { Line, Bar, Doughnut } from "react-chartjs-2";
 import Sidebar from "../components/Multipage/Sidebar";
 import DashboardHeader from "../components/Dashboard/DashboardHeader";
 import AddTransactionModal from "../components/Dashboard/AddTransactionModal";
-import {
-  FaPen,
+import { 
+  FaPen, 
   FaTrash,
-  FaUtensils,
-  FaWallet,
-  FaCar,
-  FaFilm,
-  FaBolt,
-  FaShoppingBag,
-  FaDumbbell,
-  FaQuestion,
+  FaUtensils, 
+  FaWallet, 
+  FaCar, 
+  FaFilm, 
+  FaBolt, 
+  FaShoppingBag, 
+  FaDumbbell, 
+  FaQuestion
 } from "react-icons/fa";
 import api from "../utils/api";
 import { syncAllExternalWallets } from "../utils/walletSync";
@@ -82,11 +82,7 @@ const CATEGORY_ICONS = {
   "Health & Fitness": FaDumbbell,
 };
 
-import {
-  ALL_OPTION,
-  buildMonthOptions,
-  parseMonthFilter,
-} from "../utils/dateUtils";
+import { ALL_OPTION, buildMonthOptions, parseMonthFilter } from "../utils/dateUtils";
 
 function Dashboard() {
   const [selectedMonth, setSelectedMonth] = useState(ALL_OPTION);
@@ -282,7 +278,10 @@ function Dashboard() {
       const txId = updatedTx._id || updatedTx.id;
       if (!txId) return;
 
-      const response = await api.put(`/transactions/${txId}`, updatedTx);
+      const response = await api.put(
+        `/transactions/${txId}`,
+        updatedTx,
+      );
       let savedTx = updatedTx;
       if (response.data && response.data.data) {
         savedTx = response.data.data;
@@ -417,12 +416,8 @@ function Dashboard() {
   // Pagination — cap display to 4 pages (20 most recent transactions)
   const transactionsPerPage = 5;
   const MAX_PAGES = 4;
-  const cappedTransactions = recentTransactions.slice(
-    0,
-    transactionsPerPage * MAX_PAGES,
-  );
-  const totalPages =
-    Math.ceil(cappedTransactions.length / transactionsPerPage) || 1;
+  const cappedTransactions = recentTransactions.slice(0, transactionsPerPage * MAX_PAGES);
+  const totalPages = Math.ceil(cappedTransactions.length / transactionsPerPage) || 1;
   const visibleTransactions = cappedTransactions.slice(
     (currentPage - 1) * transactionsPerPage,
     currentPage * transactionsPerPage,
@@ -566,10 +561,8 @@ function Dashboard() {
                   const catColor =
                     CATEGORY_COLORS[tx.category] || "text-gray-400";
 
-                  const iconBg =
-                    CATEGORY_ICON_COLORS[tx.category] || "bg-gray-600";
-                  const IconComponent =
-                    CATEGORY_ICONS[tx.category] || FaQuestion;
+                  const iconBg = CATEGORY_ICON_COLORS[tx.category] || "bg-gray-600";
+                  const IconComponent = CATEGORY_ICONS[tx.category] || FaQuestion;
 
                   return (
                     <div
@@ -598,11 +591,7 @@ function Dashboard() {
 
                       {/* Right: category + wallet + amount + actions */}
                       <div className="flex items-center gap-4 sm:gap-8">
-                        <span
-                          className={
-                            "text-xs hidden sm:inline-block " + catColor
-                          }
-                        >
+                        <span className={"text-xs hidden sm:inline-block " + catColor}>
                           {tx.category}
                         </span>
                         <span className="text-gray-400 text-xs w-12 text-right hidden md:inline-block">
@@ -610,8 +599,7 @@ function Dashboard() {
                         </span>
                         <span
                           className={
-                            "text-sm font-semibold w-16 text-right " +
-                            amountColor
+                            "text-sm font-semibold w-16 text-right " + amountColor
                           }
                         >
                           {amountText}
@@ -702,7 +690,7 @@ function Dashboard() {
           onClose={() => setShowEditModal(false)}
           transactionToEdit={transactionToEdit}
           onEdit={handleEditSubmit}
-          onAdd={() => {}}
+          onAdd={() => { }}
         />
       )}
     </div>
