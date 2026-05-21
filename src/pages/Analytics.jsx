@@ -1,7 +1,13 @@
 import React, { useState, useEffect, useMemo } from "react";
-import axios from "axios";
 import Sidebar from "../components/Multipage/Sidebar";
 import DashboardHeader from "../components/Dashboard/DashboardHeader";
+import api from "../utils/api";
+import {
+  ALL_OPTION,
+  buildMonthOptions,
+  parseMonthFilter,
+} from "../utils/dateUtils";
+import { toast } from "react-toastify";
 import {
   TrendingUp,
   TrendingDown,
@@ -53,25 +59,31 @@ const CATEGORY_COLORS = {
 const Analytics = () => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedMonth, setSelectedMonth] = useState("March 2026");
+  const monthOptions = useMemo(() => buildMonthOptions(), []);
+  const [selectedMonth, setSelectedMonth] = useState(ALL_OPTION);
+
+  const fetchTransactions = async () => {
+    setLoading(true);
+    try {
+      const monthlyFilter = parseMonthFilter(selectedMonth);
+      const response = monthlyFilter
+        ? await api.get("/transactions/monthly", { params: monthlyFilter })
+        : await api.get("/transactions");
+
+      if (response.data.success) {
+        setTransactions(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      toast.error(error.response?.data?.message || "Error fetching data");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchTransactions = async () => {
-      try {
-        const response = await axios.get(
-          "http://localhost:5000/api/dashboard/recent",
-        );
-        if (response.data.success) {
-          setTransactions(response.data.data);
-        }
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchTransactions();
-  }, []);
+  }, [selectedMonth]);
 
   const stats = useMemo(() => {
     let income = 0;
@@ -173,11 +185,12 @@ const Analytics = () => {
           title="Analytics"
           selectedMonth={selectedMonth}
           onMonthChange={setSelectedMonth}
+          monthOptions={monthOptions}
         />
 
-        <main className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-8 custom-scrollbar">
           {/* 4 Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <StatCard
               title="Total Income"
               amount={stats.income}
@@ -220,12 +233,12 @@ const Analytics = () => {
               </div>
             </div>
 
-            <div className="bg-[#13161f] p-6 rounded-3xl border border-white/5 h-80">
+            <div className="bg-[#13161f] p-6 rounded-3xl border border-white/5 h-auto lg:h-80">
               <h3 className="text-sm font-medium text-gray-400 mb-4">
                 Spending Distribution
               </h3>
-              <div className="flex items-center h-56">
-                <div className="w-1/2 h-full">
+              <div className="flex flex-col sm:flex-row items-center gap-6 h-auto sm:h-56">
+                <div className="w-full sm:w-1/2 h-44 sm:h-full">
                   <Doughnut
                     data={stats.doughnutData}
                     options={{
@@ -234,7 +247,7 @@ const Analytics = () => {
                     }}
                   />
                 </div>
-                <div className="w-1/2 space-y-3 pl-6 overflow-y-auto h-full">
+                <div className="w-full sm:w-1/2 space-y-3 sm:pl-6 overflow-y-auto h-40 sm:h-full">
                   {Object.entries(stats.catMap).map(([name, val]) => (
                     <div
                       key={name}
@@ -274,7 +287,7 @@ const Analytics = () => {
 
 const StatCard = ({ title, amount, color, icon, growth, isCount }) => (
   <div
-    className={`${color} p-6 rounded-[24px] shadow-lg transition-transform hover:scale-[1.02]`}
+    className={`${color} p-5 sm:p-6 rounded-[24px] shadow-lg transition-transform hover:scale-[1.02]`}
   >
     <div className="flex justify-between items-start mb-6">
       <div className="p-2.5 bg-white/20 rounded-xl">{icon}</div>

@@ -21,8 +21,22 @@ import { Line, Bar, Doughnut } from "react-chartjs-2";
 import Sidebar from "../components/Multipage/Sidebar";
 import DashboardHeader from "../components/Dashboard/DashboardHeader";
 import AddTransactionModal from "../components/Dashboard/AddTransactionModal";
-import { FaPen, FaTrash } from "react-icons/fa";
+import {
+  FaPen,
+  FaTrash,
+  FaUtensils,
+  FaWallet,
+  FaCar,
+  FaFilm,
+  FaBolt,
+  FaShoppingBag,
+  FaDumbbell,
+  FaQuestion,
+} from "react-icons/fa";
 import api from "../utils/api";
+import { syncAllExternalWallets } from "../utils/walletSync";
+import LoadingSpinner from "../components/Multipage/LoadingSpinner";
+import { checkBudgetAndNotify } from "../utils/budgetCheck";
 
 // ── Register all chart.js parts we need ──
 // Without this, the charts won't work
@@ -48,34 +62,31 @@ const CATEGORY_COLORS = {
   Shopping: "text-pink-400",
 };
 
-const ALL_OPTION = "All";
-
-const buildMonthOptions = () => {
-  const options = [ALL_OPTION];
-  const now = new Date();
-  for (let i = 0; i < 12; i += 1) {
-    const date = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1),
-    );
-    options.push(
-      date.toLocaleString("en-US", {
-        month: "long",
-        year: "numeric",
-        timeZone: "UTC",
-      }),
-    );
-  }
-  return options;
+const CATEGORY_ICON_COLORS = {
+  "Food & Dining": "bg-orange-500",
+  Income: "bg-green-500",
+  Transportation: "bg-blue-500",
+  Entertainment: "bg-purple-500",
+  "Bills & Utilities": "bg-yellow-500",
+  Shopping: "bg-pink-500",
+  "Health & Fitness": "bg-teal-500",
 };
 
-const parseMonthFilter = (monthLabel) => {
-  if (!monthLabel || monthLabel === ALL_OPTION) return null;
-  const [monthName, yearString] = monthLabel.split(" ");
-  const month = new Date(`${monthName} 1, ${yearString}`).getMonth() + 1;
-  const year = Number(yearString);
-  if (!month || Number.isNaN(year)) return null;
-  return { month, year };
+const CATEGORY_ICONS = {
+  "Food & Dining": FaUtensils,
+  Income: FaWallet,
+  Transportation: FaCar,
+  Entertainment: FaFilm,
+  "Bills & Utilities": FaBolt,
+  Shopping: FaShoppingBag,
+  "Health & Fitness": FaDumbbell,
 };
+
+import {
+  ALL_OPTION,
+  buildMonthOptions,
+  parseMonthFilter,
+} from "../utils/dateUtils";
 
 function Dashboard() {
   const [selectedMonth, setSelectedMonth] = useState(ALL_OPTION);
@@ -97,18 +108,9 @@ function Dashboard() {
   };
 
   const getFormattedTransaction = (tx) => {
-    const isIncome = tx.type === "income";
-    let iconBg = "bg-gray-500";
-    if (isIncome) iconBg = "bg-green-500";
-    else if (tx.category === "Food & Dining") iconBg = "bg-orange-500";
-    else if (tx.category === "Transportation") iconBg = "bg-teal-500";
-    else if (tx.category === "Entertainment") iconBg = "bg-red-500";
-    else if (tx.category === "Shopping") iconBg = "bg-pink-500";
-    else if (tx.category === "Bills & Utilities") iconBg = "bg-blue-500";
-
     return {
       ...tx,
-      wallet: tx.paymentMethod,
+      walletName: tx.paymentMethod || tx.wallet?.name,
       subtitle: new Date(tx.date).toLocaleString("en-US", {
         month: "short",
         day: "2-digit",
@@ -117,13 +119,6 @@ function Dashboard() {
         minute: "2-digit",
         hour12: true,
       }),
-      iconBg,
-      initials: tx.title
-        .split(" ")
-        .map((w) => w[0])
-        .join("")
-        .substring(0, 2)
-        .toUpperCase(),
     };
   };
 
@@ -287,27 +282,15 @@ function Dashboard() {
       const txId = updatedTx._id || updatedTx.id;
       if (!txId) return;
 
-      const response = await api.put(
-        `/transactions/${txId}`,
-        updatedTx,
-      );
+      const response = await api.put(`/transactions/${txId}`, updatedTx);
       let savedTx = updatedTx;
       if (response.data && response.data.data) {
         savedTx = response.data.data;
       }
 
-      const isIncome = savedTx.type === "income";
-      let iconBg = "bg-gray-500";
-      if (isIncome) iconBg = "bg-green-500";
-      else if (savedTx.category === "Food & Dining") iconBg = "bg-orange-500";
-      else if (savedTx.category === "Transportation") iconBg = "bg-teal-500";
-      else if (savedTx.category === "Entertainment") iconBg = "bg-red-500";
-      else if (savedTx.category === "Shopping") iconBg = "bg-pink-500";
-      else if (savedTx.category === "Bills & Utilities") iconBg = "bg-blue-500";
-
       const formattedTx = {
         ...savedTx,
-        wallet: savedTx.paymentMethod,
+        walletName: savedTx.paymentMethod || savedTx.wallet?.name,
         subtitle:
           savedTx.displayDate ||
           new Date(savedTx.date).toLocaleString("en-US", {
@@ -318,13 +301,6 @@ function Dashboard() {
             minute: "2-digit",
             hour12: true,
           }),
-        iconBg,
-        initials: savedTx.title
-          .split(" ")
-          .map((w) => w[0])
-          .join("")
-          .substring(0, 2)
-          .toUpperCase(),
       };
 
       setRecentTransactions((prev) => {
@@ -335,6 +311,7 @@ function Dashboard() {
       });
       setShowEditModal(false);
       toast.success("Transaction updated");
+      await checkBudgetAndNotify(savedTx);
     } catch (error) {
       toast.error(
         error.response?.data?.message || "Error updating transaction",
@@ -343,7 +320,12 @@ function Dashboard() {
   };
 
   useEffect(() => {
-    fetchTransactions();
+    const syncAndFetch = async () => {
+      setIsLoading(true);
+      await syncAllExternalWallets();
+      fetchTransactions();
+    };
+    syncAndFetch();
   }, [fetchTransactions]);
 
   useEffect(() => {
@@ -432,11 +414,16 @@ function Dashboard() {
     },
   };
 
-  // Pagination
+  // Pagination — cap display to 4 pages (20 most recent transactions)
   const transactionsPerPage = 5;
+  const MAX_PAGES = 4;
+  const cappedTransactions = recentTransactions.slice(
+    0,
+    transactionsPerPage * MAX_PAGES,
+  );
   const totalPages =
-    Math.ceil(recentTransactions.length / transactionsPerPage) || 1;
-  const visibleTransactions = recentTransactions.slice(
+    Math.ceil(cappedTransactions.length / transactionsPerPage) || 1;
+  const visibleTransactions = cappedTransactions.slice(
     (currentPage - 1) * transactionsPerPage,
     currentPage * transactionsPerPage,
   );
@@ -455,14 +442,14 @@ function Dashboard() {
           monthOptions={monthOptions}
         />
 
-        <div className="flex-1 overflow-auto p-6 flex flex-col gap-5">
+        <div className="flex-1 overflow-auto p-4 sm:p-6 flex flex-col gap-5">
           {/* ── Net Worth Card ── */}
-          <div className="rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 p-6">
+          <div className="rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 p-4 sm:p-6">
             <p className="text-blue-100 text-xs font-medium mb-1">
               Total Net Worth
             </p>
             <div className="flex items-center gap-3 mb-4">
-              <h2 className="text-white text-3xl font-bold">
+              <h2 className="text-white text-2xl sm:text-3xl font-bold">
                 ${totals.net.toLocaleString()}
               </h2>
               <span className="flex items-center gap-1 bg-white/20 text-white text-xs font-semibold px-2 py-1 rounded-full">
@@ -487,7 +474,7 @@ function Dashboard() {
           </div>
 
           {/* ── Three Chart Cards ── */}
-          <div className="grid grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
             {/* Chart 1: Line Chart — Income vs Expense Trend */}
             <div className="bg-[#0f1117] border border-white/5 rounded-2xl p-4">
               <p className="text-white text-sm font-medium mb-4">
@@ -565,79 +552,99 @@ function Dashboard() {
             </p>
 
             <div className="flex flex-col">
-              {visibleTransactions.map(function (tx, index) {
-                const isIncome = tx.type === "income";
-                const amountText = isIncome
-                  ? "+$" + tx.amount.toLocaleString()
-                  : "$" + tx.amount.toLocaleString();
-                const amountColor = isIncome
-                  ? "text-green-400"
-                  : "text-red-400";
-                const catColor =
-                  CATEGORY_COLORS[tx.category] || "text-gray-400";
+              {isLoading ? (
+                <LoadingSpinner message="Fetching your latest transactions..." />
+              ) : visibleTransactions.length > 0 ? (
+                visibleTransactions.map(function (tx, index) {
+                  const isIncome = tx.type === "income";
+                  const amountText = isIncome
+                    ? "+$" + tx.amount.toLocaleString()
+                    : "$" + tx.amount.toLocaleString();
+                  const amountColor = isIncome
+                    ? "text-green-400"
+                    : "text-red-400";
+                  const catColor =
+                    CATEGORY_COLORS[tx.category] || "text-gray-400";
 
-                return (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between py-3 border-b border-white/5 last:border-b-0"
-                  >
-                    {/* Left: icon + title + date */}
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={
-                          "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 " +
-                          tx.iconBg
-                        }
-                      >
-                        <span className="text-white text-xs font-bold">
-                          {tx.initials}
+                  const iconBg =
+                    CATEGORY_ICON_COLORS[tx.category] || "bg-gray-600";
+                  const IconComponent =
+                    CATEGORY_ICONS[tx.category] || FaQuestion;
+
+                  return (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between py-3 border-b border-white/5 last:border-b-0"
+                    >
+                      {/* Left: icon + title + date */}
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={
+                            "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 " +
+                            iconBg
+                          }
+                        >
+                          <IconComponent className="text-white text-sm" />
+                        </div>
+                        <div>
+                          <p className="text-white text-sm font-medium">
+                            {tx.title}
+                          </p>
+                          <p className="text-gray-500 text-xs mt-0.5">
+                            {tx.subtitle}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Right: category + wallet + amount + actions */}
+                      <div className="flex items-center gap-4 sm:gap-8">
+                        <span
+                          className={
+                            "text-xs hidden sm:inline-block " + catColor
+                          }
+                        >
+                          {tx.category}
                         </span>
-                      </div>
-                      <div>
-                        <p className="text-white text-sm font-medium">
-                          {tx.title}
-                        </p>
-                        <p className="text-gray-500 text-xs mt-0.5">
-                          {tx.subtitle}
-                        </p>
+                        <span className="text-gray-400 text-xs w-12 text-right hidden md:inline-block">
+                          {tx.walletName}
+                        </span>
+                        <span
+                          className={
+                            "text-sm font-semibold w-16 text-right " +
+                            amountColor
+                          }
+                        >
+                          {amountText}
+                        </span>
+                        <div className="flex items-center justify-end gap-3 ml-2 w-16">
+                          {!tx.wallet?.isExternal && (
+                            <>
+                              <button
+                                onClick={() => handleEditClick(tx)}
+                                className="text-gray-400 hover:text-white transition-colors"
+                                title="Edit"
+                              >
+                                <FaPen size={12} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteClick(tx)}
+                                className="text-red-400 hover:text-red-300 transition-colors"
+                                title="Delete"
+                              >
+                                <FaTrash size={12} />
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
-
-                    {/* Right: category + wallet + amount + actions */}
-                    <div className="flex items-center gap-8">
-                      <span className={"text-xs " + catColor}>
-                        {tx.category}
-                      </span>
-                      <span className="text-gray-400 text-xs w-12 text-right">
-                        {tx.wallet}
-                      </span>
-                      <span
-                        className={
-                          "text-sm font-semibold w-16 text-right " + amountColor
-                        }
-                      >
-                        {amountText}
-                      </span>
-                      <div className="flex items-center gap-3 ml-2">
-                        <button
-                          onClick={() => handleEditClick(tx)}
-                          className="text-gray-400 hover:text-white transition-colors"
-                          title="Edit"
-                        >
-                          <FaPen size={12} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteClick(tx)}
-                          className="text-red-400 hover:text-red-300 transition-colors"
-                          title="Delete"
-                        >
-                          <FaTrash size={12} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              ) : (
+                <div className="text-center py-10 text-gray-500 text-sm">
+                  No transactions found.
+                </div>
+              )}
             </div>
 
             {/* Pagination */}

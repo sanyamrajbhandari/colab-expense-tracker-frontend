@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { ChevronDown, User } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ChevronDown, User, Menu } from "lucide-react";
+import api from "../../utils/api";
 
 const DEFAULT_MONTH_OPTIONS = ["All"];
 
@@ -10,11 +11,36 @@ function DashboardHeader({
   monthOptions = DEFAULT_MONTH_OPTIONS,
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [userName, setUserName] = useState("");
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await api.get("/user");
+        if (response.data?.success) {
+          setUserName(response.data.data.fullName);
+        }
+      } catch (error) {
+        console.error("Error fetching user:", error);
+      }
+    };
+    fetchUser();
+  }, []);
 
   return (
     <div className="flex items-center justify-between px-6 py-4 bg-[#0f1117] border-b border-white/5">
-      {/* Page title */}
-      <h1 className="text-white font-semibold text-lg">{title}</h1>
+      {/* Page title with mobile hamburger */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() =>
+            window.dispatchEvent(new CustomEvent("toggle-sidebar"))
+          }
+          className="p-1.5 text-gray-400 hover:text-white rounded-lg hover:bg-[#1a1d27] md:hidden cursor-pointer flex items-center justify-center"
+        >
+          <Menu size={20} />
+        </button>
+        <h1 className="text-white font-semibold text-lg">{title}</h1>
+      </div>
 
       {/* Right side: month picker + avatar */}
       <div className="flex items-center gap-3">
@@ -56,9 +82,16 @@ function DashboardHeader({
         </div>
 
         {/* Avatar */}
-        <button className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
-          <User size={16} className="text-white" />
-        </button>
+        <div className="flex items-center gap-2">
+          {userName && (
+            <span className="text-sm font-medium text-slate-300">
+              {userName}
+            </span>
+          )}
+          <button className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
+            <User size={16} className="text-white" />
+          </button>
+        </div>
       </div>
     </div>
   );
