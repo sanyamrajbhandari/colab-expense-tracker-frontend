@@ -20,30 +20,68 @@ const WALLETS = [
   "Bank",
 ];
 
-function AddTransactionModal({ onClose, onAdd }) {
+function AddTransactionModal({ onClose, onAdd, transactionToEdit, onEdit }) {
+  const isEditMode = !!transactionToEdit;
   // One state variable for each form field
-  const [type, setType] = useState("expense");
-  const [title, setTitle] = useState("");
-  const [amount, setAmount] = useState("");
-  const [category, setCategory] = useState("Food & Dining");
-  const [wallet, setWallet] = useState("Personal Checking (...4290)");
-  const [date, setDate] = useState("05/24/2024");
-  const [time, setTime] = useState("02:30 PM");
+  // Initialize states with edit data if available
+  const [type, setType] = useState(
+    isEditMode ? transactionToEdit.type : "expense",
+  );
+  const [title, setTitle] = useState(isEditMode ? transactionToEdit.title : "");
+  const [amount, setAmount] = useState(
+    isEditMode ? transactionToEdit.amount : "",
+  );
+  const [category, setCategory] = useState(
+    isEditMode ? transactionToEdit.category : "Food & Dining",
+  );
+
+  // Wallet could be paymentMethod or wallet depending on how it was passed
+  const initialWallet = isEditMode
+    ? transactionToEdit.wallet || transactionToEdit.paymentMethod
+    : "Personal Checking (...4290)";
+  const [wallet, setWallet] = useState(initialWallet);
+
+  // Try to parse the date and time from the transaction to be edited
+  const now = new Date();
+  const zeroPad = (num) => String(num).padStart(2, "0");
+  let defaultDate = `${now.getFullYear()}-${zeroPad(now.getMonth() + 1)}-${zeroPad(now.getDate())}`;
+  let defaultTime = `${zeroPad(now.getHours())}:${zeroPad(now.getMinutes())}`;
+
+  if (isEditMode && transactionToEdit.date) {
+    try {
+      const parsedDate = new Date(transactionToEdit.date);
+      if (!isNaN(parsedDate.getTime())) {
+        defaultDate = `${parsedDate.getFullYear()}-${zeroPad(parsedDate.getMonth() + 1)}-${zeroPad(parsedDate.getDate())}`;
+        defaultTime = `${zeroPad(parsedDate.getHours())}:${zeroPad(parsedDate.getMinutes())}`;
+      }
+    } catch (e) {
+      // Intentionally empty
+    }
+  }
+
+  const [date, setDate] = useState(defaultDate);
+  const [time, setTime] = useState(defaultTime);
 
   // This runs when the user clicks "Add Transaction"
   function handleSubmit() {
     // Don't do anything if title or amount is empty
     if (!title.trim() || !amount) return;
 
-    // Send the new transaction back to the parent component
-    onAdd({
+    const payload = {
       title: title,
       amount: parseFloat(amount),
-      category: category,
-      wallet: wallet,
-      date: date,
       type: type,
-    });
+      category: category,
+      paymentMethod: wallet,
+      date: new Date(`${date}T${time}:00`).toISOString(),
+    };
+
+    if (isEditMode && onEdit) {
+      onEdit({ ...transactionToEdit, ...payload });
+    } else {
+      // Send the new transaction back to the parent component
+      onAdd(payload);
+    }
 
     onClose(); // Close the modal
   }
@@ -65,7 +103,7 @@ function AddTransactionModal({ onClose, onAdd }) {
         <div className="flex items-start justify-between mb-4">
           <div>
             <h2 className="text-white font-semibold text-base">
-              Add New Transaction
+              {isEditMode ? "Edit Transaction" : "Add New Transaction"}
             </h2>
             <p className="text-gray-500 text-xs mt-0.5">
               Record your latest activity to keep your budgets accurate.
@@ -202,7 +240,7 @@ function AddTransactionModal({ onClose, onAdd }) {
               Date
             </p>
             <input
-              type="text"
+              type="date"
               value={date}
               onChange={function (e) {
                 setDate(e.target.value);
@@ -215,7 +253,7 @@ function AddTransactionModal({ onClose, onAdd }) {
               Time
             </p>
             <input
-              type="text"
+              type="time"
               value={time}
               onChange={function (e) {
                 setTime(e.target.value);
@@ -237,14 +275,8 @@ function AddTransactionModal({ onClose, onAdd }) {
             onClick={handleSubmit}
             className="flex-1 py-2 rounded-full bg-blue-600 text-white text-sm font-medium hover:bg-blue-500"
           >
-            Add Transaction
+            {isEditMode ? "Edit transaction" : "Add Transaction"}
           </button>
-        </div>
-
-        {/* Bottom badges */}
-        <div className="flex items-center justify-center gap-4 mt-4">
-          <span className="text-gray-600 text-xs">🔒 SECURE ENTRY</span>
-          <span className="text-gray-600 text-xs">🔄 AUTO-SYNCING</span>
         </div>
       </div>
     </div>

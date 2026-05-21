@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import "../css/Login.css";
 import { useNavigate } from "react-router-dom";
 import { FaLock } from "react-icons/fa";
 import { IoMdWallet } from "react-icons/io";
@@ -20,6 +19,12 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  const extractToken = (payload) =>
+    payload?.token ||
+    payload?.data?.token ||
+    payload?.data?.accessToken ||
+    null;
+
   const handleLogin = async () => {
     // Empty fields check
     if (email.trim() === "" || password.trim() === "") {
@@ -29,7 +34,7 @@ const Login = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/login", // change if needed
+        "http://localhost:5000/api/auth/login", // change if needed
         {
           email,
           password,
@@ -39,9 +44,10 @@ const Login = () => {
       // Success
       toast.success(response.data.message || "Login successful!");
 
-      // Optional: store token (if backend sends it)
-      if (response.data.token) {
-        localStorage.setItem("token", response.data.token);
+      // Store token from common backend response shapes
+      const token = extractToken(response.data);
+      if (token) {
+        localStorage.setItem("token", token);
       }
 
       setTimeout(() => {
@@ -60,7 +66,7 @@ const Login = () => {
   };
 
   return (
-    <div className="container">
+    <div className="min-h-screen flex justify-center items-center px-4 py-8 bg-[radial-gradient(circle_at_top,#0f172a,#020617)] text-white">
       {/* Toast Container */}
       <ToastContainer
         position="top-right"
@@ -68,22 +74,26 @@ const Login = () => {
         autoClose={2000}
       />
 
-      <div className="card">
+      <div className="w-full max-w-[380px] p-8 sm:p-10 bg-white/5 rounded-2xl backdrop-blur-md shadow-2xl border border-white/10">
         {/* Logo */}
-        <div className="logo-container">
-          <div className="logo">
+        <div className="text-center mb-6">
+          <div className="text-4xl text-indigo-400 mb-3 flex justify-center">
             <IoMdWallet />
           </div>
-          <h1>SpendWise</h1>
-          <p>Enter your credentials to access your insights</p>
+          <h1 className="text-2xl font-bold text-white mb-1">SpendWise</h1>
+          <p className="text-xs text-slate-400">
+            Enter your credentials to access your insights
+          </p>
         </div>
 
         {/* Form */}
-        <div className="form">
+        <div className="flex flex-col gap-1">
           {/* Email */}
-          <label>Email Address</label>
-          <div className="input-group">
-            <span className="icon">
+          <label className="block text-xs text-slate-400 mb-1.5 uppercase tracking-wider font-semibold">
+            Email Address
+          </label>
+          <div className="flex items-center bg-white/5 border border-white/5 rounded-xl px-4 py-3 mb-4 focus-within:border-indigo-400 focus-within:bg-white/10 transition-all">
+            <span className="mr-2.5 opacity-70 text-lg flex items-center text-slate-400">
               <MdEmail />
             </span>
             <input
@@ -91,17 +101,22 @@ const Login = () => {
               placeholder="Enter your Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              className="flex-1 bg-transparent border-none outline-none text-white text-sm placeholder-slate-500"
             />
           </div>
 
           {/* Password */}
-          <div className="password-header">
-            <label>Password</label>
-            <span className="forgot">Forgot Password?</span>
+          <div className="flex justify-between items-center mb-1.5">
+            <label className="block text-xs text-slate-400 uppercase tracking-wider font-semibold m-0">
+              Password
+            </label>
+            <span className="text-xs text-indigo-400 hover:underline cursor-pointer">
+              Forgot Password?
+            </span>
           </div>
 
-          <div className="input-group">
-            <span className="icon">
+          <div className="flex items-center bg-white/5 border border-white/5 rounded-xl px-4 py-3 mb-4 focus-within:border-indigo-400 focus-within:bg-white/10 transition-all">
+            <span className="mr-2.5 opacity-70 text-lg flex items-center text-slate-400">
               <FaLock />
             </span>
 
@@ -110,10 +125,11 @@ const Login = () => {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              className="flex-1 bg-transparent border-none outline-none text-white text-sm placeholder-slate-500"
             />
 
             <span
-              className="eye"
+              className="ml-2.5 cursor-pointer opacity-70 text-lg flex items-center text-slate-400 hover:text-indigo-400 transition-colors"
               onClick={() => setShowPassword(!showPassword)}
             >
               {showPassword ? <FiEyeOff /> : <FiEye />}
@@ -121,23 +137,34 @@ const Login = () => {
           </div>
 
           {/* Remember */}
-          <div className="remember">
-            <label className="checkbox">
-              <input type="checkbox" />
+          <div className="mb-4">
+            <label className="flex items-center text-xs text-slate-400 gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0 cursor-pointer"
+              />
               <span>Remember me for 30 days</span>
             </label>
           </div>
 
           {/* Button */}
-          <button className="btn-login" onClick={handleLogin}>
+          <button
+            className="w-full py-3.5 bg-gradient-to-r from-indigo-500 to-indigo-400 text-slate-900 rounded-full font-bold text-sm hover:-translate-y-0.5 hover:opacity-95 transition-all shadow-lg shadow-indigo-500/20 cursor-pointer"
+            onClick={handleLogin}
+          >
             Log In →
           </button>
         </div>
 
         {/* Signup */}
-        <p className="signup">
+        <p className="mt-6 text-center text-xs text-slate-400">
           New to SpendWise?{" "}
-          <span onClick={() => navigate("/signup")}>Create an Account</span>
+          <span
+            className="text-indigo-400 cursor-pointer font-semibold hover:underline"
+            onClick={() => navigate("/signup")}
+          >
+            Create an Account
+          </span>
         </p>
       </div>
     </div>

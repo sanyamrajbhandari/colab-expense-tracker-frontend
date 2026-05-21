@@ -1,7 +1,5 @@
 import React, { useState } from "react";
 import { FiAlertTriangle, FiBell, FiSave, FiUser } from "react-icons/fi";
-import MonthDropdown from "../components/Multipage/MonthDropdown";
-import "../css/Settings.css";
 import Sidebar from "../components/Multipage/Sidebar";
 import Dashboard from "../components/Dashboard/DashboardHeader";
 
@@ -36,167 +34,190 @@ const Settings = () => {
     alert("Warning: This will permanently delete your account.");
   };
 
+  const toggleRow =
+    "flex items-center justify-between border-b border-slate-700 pb-4 last:border-b-0 last:pb-0";
+
+  const ToggleSwitch = ({ name, checked, onChange }) => (
+    <label className="relative ml-5 inline-flex h-6 w-11 shrink-0 cursor-pointer">
+      <input
+        type="checkbox"
+        name={name}
+        checked={checked}
+        onChange={onChange}
+        className="peer sr-only"
+      />
+      <span className="pointer-events-none absolute inset-0 rounded-full bg-slate-100 transition-colors peer-checked:bg-blue-500" />
+      <span className="pointer-events-none absolute left-[3px] top-[3px] h-[18px] w-[18px] rounded-full bg-slate-900 transition-transform peer-checked:translate-x-5 peer-checked:bg-white" />
+    </label>
+  );
+
   return (
-    <div className="app">
-      {/* Sidebar component */}
+    <div className="flex h-screen bg-[#0b0d14] text-slate-50 overflow-hidden">
       <Sidebar />
 
-      <div className="right-board">
-        {/* Topbar component */}
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <Dashboard title="Settings" />
 
-        <div className="settings-container">
-          {/* <div className="settings-header">
-            <h1>Settings</h1>
-            <div className="header-actions">
-              <MonthDropdown />
-              <div className="header-profile">
-                <FiUser className="profile-icon" />
-              </div>
-            </div>
-          </div> */}
-
-          <div className="settings-content">
+        <div className="flex-1 overflow-y-auto px-10 pb-10 font-[Inter,Roboto,sans-serif]">
+          <div className="mx-0 flex max-w-[900px] flex-col gap-5">
             {/* Profile Card */}
-            <div className="settings-card">
-              <div className="card-header">
-                <div className="card-icon-wrapper">
-                  <FiUser className="card-title-icon" />
+            <div className="rounded-xl border border-slate-700 bg-slate-800 px-8 py-6">
+              <div className="mb-6 flex items-center gap-3">
+                <div className="flex items-center text-blue-500">
+                  <FiUser className="h-[22px] w-[22px]" />
                 </div>
-                <h2>Profile</h2>
+                <h2 className="m-0 text-lg font-semibold text-slate-50">Profile</h2>
               </div>
 
-              <form onSubmit={handleSave} className="settings-form">
-                <div className="form-group">
-                  <label htmlFor="name">Full Name</label>
+              <form onSubmit={handleSave} className="space-y-5">
+                <div>
+                  <label
+                    htmlFor="name"
+                    className="mb-2 block text-sm font-semibold text-slate-50"
+                  >
+                    Full Name
+                  </label>
                   <input
                     type="text"
                     id="name"
                     name="name"
                     value={profile.name}
                     onChange={handleProfileChange}
+                    className="w-full rounded-lg border border-slate-600 bg-slate-700 px-4 py-3 text-sm text-slate-50 outline-none transition-colors focus:border-blue-500"
                   />
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor="email">Email</label>
+                <div>
+                  <label
+                    htmlFor="email"
+                    className="mb-2 block text-sm font-semibold text-slate-50"
+                  >
+                    Email
+                  </label>
                   <input
                     type="email"
                     id="email"
                     name="email"
                     value={profile.email}
                     onChange={handleProfileChange}
+                    className="w-full rounded-lg border border-slate-600 bg-slate-700 px-4 py-3 text-sm text-slate-50 outline-none transition-colors focus:border-blue-500"
                   />
                 </div>
 
-                <div className="avatar-section">
-                  <label>Avatar</label>
-                  <div className="avatar-actions">
-                    <div className="avatar-preview">
-                      <FiUser className="profile-icon" />
+                <div className="mb-6">
+                  <label className="mb-3 block text-sm font-semibold text-slate-50">
+                    Avatar
+                  </label>
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500">
+                      <FiUser className="h-6 w-6 text-white" />
                     </div>
-                    <button type="button" className="btn-secondary">
+                    <button
+                      type="button"
+                      className="rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-sm font-medium text-slate-50 transition-colors hover:border-slate-600 hover:bg-slate-800"
+                    >
                       Change Avatar
                     </button>
                   </div>
                 </div>
 
-                <button type="submit" className="btn-primary mt-4">
-                  <FiSave className="btn-icon" />
+                <button
+                  type="submit"
+                  className="mt-4 flex items-center gap-2 rounded-lg bg-blue-500 px-5 py-3 text-[15px] font-semibold text-white transition-colors hover:bg-blue-600"
+                >
+                  <FiSave className="h-[18px] w-[18px]" />
                   Save Changes
                 </button>
               </form>
             </div>
 
             {/* Notifications Card */}
-            <div className="settings-card">
-              <div className="card-header">
-                <div className="card-icon-wrapper">
-                  <FiBell className="card-title-icon" />
+            <div className="rounded-xl border border-slate-700 bg-slate-800 px-8 py-6">
+              <div className="mb-6 flex items-center gap-3">
+                <div className="flex items-center text-blue-500">
+                  <FiBell className="h-[22px] w-[22px]" />
                 </div>
-                <h2>Notification Preferences</h2>
+                <h2 className="m-0 text-lg font-semibold text-slate-50">
+                  Notification Preferences
+                </h2>
               </div>
 
-              <div className="toggle-list">
-                <div className="toggle-item">
-                  <div className="toggle-info">
-                    <div className="toggle-title">Budget Exceeded</div>
-                    <div className="toggle-desc">
+              <div className="flex flex-col gap-5">
+                <div className={toggleRow}>
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-1 text-sm font-semibold text-slate-50">
+                      Budget Exceeded
+                    </div>
+                    <div className="text-[13px] leading-snug text-slate-400">
                       Get notified when you exceed your monthly budget
                     </div>
                   </div>
-                  <label className="switch">
-                    <input
-                      type="checkbox"
-                      name="budgetExceeded"
-                      checked={notifications.budgetExceeded}
-                      onChange={handleNotificationsChange}
-                    />
-                    <span className="slider round"></span>
-                  </label>
+                  <ToggleSwitch
+                    name="budgetExceeded"
+                    checked={notifications.budgetExceeded}
+                    onChange={handleNotificationsChange}
+                  />
                 </div>
 
-                <div className="toggle-item">
-                  <div className="toggle-info">
-                    <div className="toggle-title">Goal Achieved</div>
-                    <div className="toggle-desc">
+                <div className={toggleRow}>
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-1 text-sm font-semibold text-slate-50">
+                      Goal Achieved
+                    </div>
+                    <div className="text-[13px] leading-snug text-slate-400">
                       Get notified when you reach a savings goal
                     </div>
                   </div>
-                  <label className="switch">
-                    <input
-                      type="checkbox"
-                      name="goalAchieved"
-                      checked={notifications.goalAchieved}
-                      onChange={handleNotificationsChange}
-                    />
-                    <span className="slider round"></span>
-                  </label>
+                  <ToggleSwitch
+                    name="goalAchieved"
+                    checked={notifications.goalAchieved}
+                    onChange={handleNotificationsChange}
+                  />
                 </div>
 
-                <div className="toggle-item">
-                  <div className="toggle-info">
-                    <div className="toggle-title">Large Transactions</div>
-                    <div className="toggle-desc">
+                <div className={toggleRow}>
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-1 text-sm font-semibold text-slate-50">
+                      Large Transactions
+                    </div>
+                    <div className="text-[13px] leading-snug text-slate-400">
                       Get notified for transactions over $500
                     </div>
                   </div>
-                  <label className="switch">
-                    <input
-                      type="checkbox"
-                      name="largeTransactions"
-                      checked={notifications.largeTransactions}
-                      onChange={handleNotificationsChange}
-                    />
-                    <span className="slider round"></span>
-                  </label>
+                  <ToggleSwitch
+                    name="largeTransactions"
+                    checked={notifications.largeTransactions}
+                    onChange={handleNotificationsChange}
+                  />
                 </div>
               </div>
             </div>
 
             {/* Danger Zone Card */}
-            <div className="settings-card danger-zone">
-              <div className="card-header">
-                <div className="card-icon-wrapper danger-icon">
-                  <FiAlertTriangle className="card-title-icon" />
+            <div className="rounded-xl border border-red-950 bg-[#1a1625] px-8 py-6">
+              <div className="mb-6 flex items-center gap-3">
+                <div className="flex items-center text-red-500">
+                  <FiAlertTriangle className="h-[22px] w-[22px]" />
                 </div>
-                <h2 className="danger-title">Danger Zone</h2>
+                <h2 className="m-0 text-lg font-semibold text-slate-50">
+                  Danger Zone
+                </h2>
               </div>
 
-              <div className="danger-content">
-                <div className="toggle-info">
-                  <div className="toggle-title" style={{ color: "white" }}>
+              <div className="flex flex-col gap-4">
+                <div className="rounded-lg bg-[#25121b] p-4">
+                  <div className="mb-1 text-sm font-semibold text-white">
                     Delete Account
                   </div>
-                  <div className="toggle-desc">
-                    Once you delete your account, there is no going back. All
-                    your data including transactions, wallets, budgets, and
-                    goals will be permanently deleted.
+                  <div className="text-[13px] leading-snug text-slate-400">
+                    Once you delete your account, there is no going back. All your
+                    data including transactions, wallets, budgets, and goals will
+                    be permanently deleted.
                   </div>
                 </div>
                 <button
                   type="button"
-                  className="btn-danger mt-4"
+                  className="mt-4 w-fit rounded-md bg-red-500 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-600"
                   onClick={handleDeleteAccount}
                 >
                   Delete Account

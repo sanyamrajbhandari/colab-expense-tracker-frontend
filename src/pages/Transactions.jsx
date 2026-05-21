@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Plus } from "lucide-react";
+import axios from "axios";
 
 // Import all the components we built
 import Sidebar from "../components/Multipage/Sidebar";
@@ -7,109 +8,39 @@ import TransactionsHeader from "../components/Multipage/TransactionsHeader";
 import TransactionTable from "../components/Multipage/TransactionTable";
 import AddTransactionModal from "../components/Dashboard/AddTransactionModal";
 
-// This is the starting list of transactions shown on the page
-const INITIAL_TRANSACTIONS = [
-  {
-    title: "Grocery Shopping",
-    category: "Food & Dining",
-    wallet: "Cash",
-    amount: 125.5,
-    date: "Mar 22, 2026",
-    type: "expense",
-  },
-  {
-    title: "Salary",
-    category: "Income",
-    wallet: "Bank",
-    amount: 5700,
-    date: "Mar 20, 2026",
-    type: "income",
-  },
-  {
-    title: "Uber Ride",
-    category: "Transportation",
-    wallet: "eSewa",
-    amount: 15.75,
-    date: "Mar 19, 2026",
-    type: "expense",
-  },
-  {
-    title: "Netflix Subscription",
-    category: "Entertainment",
-    wallet: "Bank",
-    amount: 12.99,
-    date: "Mar 18, 2026",
-    type: "expense",
-  },
-  {
-    title: "Freelance Project",
-    category: "Income",
-    wallet: "Bank",
-    amount: 850,
-    date: "Mar 17, 2026",
-    type: "income",
-  },
-  {
-    title: "Restaurant Dinner",
-    category: "Food & Dining",
-    wallet: "Khalti",
-    amount: 68.25,
-    date: "Mar 16, 2026",
-    type: "expense",
-  },
-  {
-    title: "Electricity Bill",
-    category: "Bills & Utilities",
-    wallet: "Bank",
-    amount: 95,
-    date: "Mar 15, 2026",
-    type: "expense",
-  },
-  {
-    title: "Online Shopping",
-    category: "Shopping",
-    wallet: "eSewa",
-    amount: 210.5,
-    date: "Mar 14, 2026",
-    type: "expense",
-  },
-  {
-    title: "Gas Station",
-    category: "Transportation",
-    wallet: "Cash",
-    amount: 45,
-    date: "Mar 13, 2026",
-    type: "expense",
-  },
-  {
-    title: "Coffee Shop",
-    category: "Food & Dining",
-    wallet: "Khalti",
-    amount: 8.5,
-    date: "Mar 12, 2026",
-    type: "expense",
-  },
-  {
-    title: "Client Payment",
-    category: "Income",
-    wallet: "Bank",
-    amount: 1200,
-    date: "Mar 11, 2026",
-    type: "income",
-  },
-  {
-    title: "Gym Membership",
-    category: "Health & Fitness",
-    wallet: "Bank",
-    amount: 50,
-    date: "Mar 10, 2026",
-    type: "expense",
-  },
-];
-
 function Transactions() {
   // The full list of transactions
-  const [transactions, setTransactions] = useState(INITIAL_TRANSACTIONS);
+  const [transactions, setTransactions] = useState([]);
+
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        const response = await axios.get(
+          "http://localhost:5000/api/dashboard/recent",
+        );
+        if (response.data.success) {
+          const formattedTransactions = response.data.data.map((tx) => ({
+            ...tx,
+            wallet: tx.paymentMethod,
+            date:
+              tx.displayDate ||
+              new Date(tx.date).toLocaleString("en-US", {
+                month: "short",
+                day: "2-digit",
+                year: "numeric",
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
+              }),
+          }));
+          setTransactions(formattedTransactions);
+        }
+      } catch (error) {
+        console.error("Error fetching transactions:", error);
+      }
+    };
+    fetchTransactions();
+  }, []);
 
   // What the user types in the search box
   const [searchQuery, setSearchQuery] = useState("");
@@ -119,13 +50,103 @@ function Transactions() {
 
   // Whether the Add Transaction popup is open or closed
   const [showModal, setShowModal] = useState(false);
+  const [transactionToEdit, setTransactionToEdit] = useState(null);
+
+  const handleEditClick = (tx) => {
+    setTransactionToEdit(tx);
+    setShowModal(true);
+  };
+
+  const handleDeleteClick = async (tx) => {
+    try {
+      const txId = tx._id || tx.id;
+      if (!txId) return;
+      await axios.delete(`http://localhost:5000/api/transactions/${txId}`);
+      setTransactions((prev) => prev.filter((item) => item !== tx));
+    } catch (error) {
+      console.error("Error deleting transaction:", error);
+    }
+  };
+
+  const handleEditSubmit = async (updatedTx) => {
+    try {
+      const txId = updatedTx._id || updatedTx.id;
+      if (!txId) return;
+
+      const response = await axios.put(
+        `http://localhost:5000/api/transactions/${txId}`,
+        updatedTx,
+      );
+      let savedTx = updatedTx;
+      if (response.data && response.data.data) {
+        savedTx = response.data.data;
+      }
+
+      const formattedTx = {
+        ...savedTx,
+        wallet: savedTx.paymentMethod || updatedTx.paymentMethod,
+        date:
+          savedTx.displayDate ||
+          new Date(savedTx.date || updatedTx.date).toLocaleString("en-US", {
+            month: "short",
+            day: "2-digit",
+            year: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+          }),
+      };
+
+      setTransactions((prev) => {
+        const newList = prev.map((item) =>
+          (item.id || item._id) === txId ? formattedTx : item,
+        );
+        return newList.sort((a, b) => new Date(b.date) - new Date(a.date));
+      });
+      setShowModal(false);
+    } catch (error) {
+      console.error("Error updating transaction:", error);
+    }
+  };
 
   // This runs when the user adds a new transaction in the modal
-  function handleAddTransaction(newTransaction) {
-    // Add the new one to the top of the list
-    setTransactions(function (oldList) {
-      return [newTransaction, ...oldList];
-    });
+  async function handleAddTransaction(newTransaction) {
+    try {
+      const response = await axios.post(
+        "http://localhost:5000/api/transactions",
+        newTransaction,
+      );
+
+      let savedTx = newTransaction;
+      if (response.data && response.data.data) {
+        savedTx = response.data.data;
+      }
+
+      const formattedTx = {
+        ...savedTx,
+        wallet: savedTx.paymentMethod || newTransaction.paymentMethod,
+        date:
+          savedTx.displayDate ||
+          new Date(savedTx.date || newTransaction.date).toLocaleString(
+            "en-US",
+            {
+              month: "short",
+              day: "2-digit",
+              year: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+              hour12: true,
+            },
+          ),
+      };
+
+      setTransactions(function (oldList) {
+        const newList = [formattedTx, ...oldList];
+        return newList.sort((a, b) => new Date(b.date) - new Date(a.date));
+      });
+    } catch (error) {
+      console.error("Error adding transaction:", error);
+    }
   }
 
   // Filter the list — only show transactions whose title matches the search
@@ -173,6 +194,7 @@ function Transactions() {
           {/* Add Transaction button */}
           <button
             onClick={function () {
+              setTransactionToEdit(null); // Ensure we are in add mode
               setShowModal(true);
             }}
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg whitespace-nowrap"
@@ -184,7 +206,11 @@ function Transactions() {
 
         {/* The transaction table */}
         <div className="flex-1 overflow-auto px-6 py-2">
-          <TransactionTable transactions={filteredTransactions} />
+          <TransactionTable
+            transactions={filteredTransactions}
+            onEdit={handleEditClick}
+            onDelete={handleDeleteClick}
+          />
         </div>
       </div>
 
@@ -195,6 +221,8 @@ function Transactions() {
             setShowModal(false);
           }}
           onAdd={handleAddTransaction}
+          transactionToEdit={transactionToEdit}
+          onEdit={handleEditSubmit}
         />
       )}
     </div>
