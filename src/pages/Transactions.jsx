@@ -11,11 +11,7 @@ import { syncAllExternalWallets } from "../utils/walletSync";
 import LoadingSpinner from "../components/Multipage/LoadingSpinner";
 import { checkBudgetAndNotify } from "../utils/budgetCheck";
 
-import {
-  ALL_OPTION,
-  buildMonthOptions,
-  parseMonthFilter,
-} from "../utils/dateUtils";
+import { ALL_OPTION, buildMonthOptions, parseMonthFilter } from "../utils/dateUtils";
 
 const toDisplayDate = (date) =>
   new Date(date).toLocaleString("en-US", {
@@ -165,8 +161,7 @@ function Transactions() {
     tx.title.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  const totalPages =
-    Math.ceil(filteredTransactions.length / TRANSACTIONS_PER_PAGE) || 1;
+  const totalPages = Math.ceil(filteredTransactions.length / TRANSACTIONS_PER_PAGE) || 1;
   const paginatedTransactions = filteredTransactions.slice(
     (currentPage - 1) * TRANSACTIONS_PER_PAGE,
     currentPage * TRANSACTIONS_PER_PAGE,
@@ -238,26 +233,22 @@ function Transactions() {
                     ‹
                   </button>
 
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                    (page) => (
-                      <button
-                        key={page}
-                        onClick={() => setCurrentPage(page)}
-                        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-colors ${
-                          page === currentPage
-                            ? "bg-blue-600 text-white"
-                            : "text-gray-400 hover:bg-white/5"
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    ),
-                  )}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-colors ${
+                        page === currentPage
+                          ? "bg-blue-600 text-white"
+                          : "text-gray-400 hover:bg-white/5"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
 
                   <button
-                    onClick={() =>
-                      setCurrentPage((p) => Math.min(p + 1, totalPages))
-                    }
+                    onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
                     disabled={currentPage === totalPages}
                     className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-white/5 disabled:opacity-30 text-lg"
                   >
@@ -290,7 +281,10 @@ function Transactions() {
             className="bg-[#151f2e] rounded-2xl p-6 sm:p-8 w-full max-w-[380px] mx-4 border border-white/[0.08] text-center"
           >
             <div className="w-14 h-14 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
-              <FaTrash size={22} className="text-red-500" />
+              <FaTrash
+                size={22}
+                className="text-red-500"
+              />
             </div>
 
             <h3 className="text-white text-lg font-bold mb-2">

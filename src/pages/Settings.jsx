@@ -1,20 +1,64 @@
-import React, { useState } from "react";
-import { FiAlertTriangle, FiBell, FiSave, FiUser } from "react-icons/fi";
+import React, { useState, useEffect } from "react";
+import { FiAlertTriangle, FiBell, FiSave, FiUser, FiX, FiLogOut } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+import api from "../utils/api";
 import Sidebar from "../components/Multipage/Sidebar";
 import Dashboard from "../components/Dashboard/DashboardHeader";
 
+const ToggleSwitch = ({ name, checked, onChange }) => (
+  <label className="relative ml-5 inline-flex h-6 w-11 shrink-0 cursor-pointer">
+    <input
+      type="checkbox"
+      name={name}
+      checked={checked}
+      onChange={onChange}
+      className="peer sr-only"
+    />
+    <span className="pointer-events-none absolute inset-0 rounded-full bg-slate-100 transition-colors peer-checked:bg-blue-500" />
+    <span className="pointer-events-none absolute left-[3px] top-[3px] h-[18px] w-[18px] rounded-full bg-slate-900 transition-transform peer-checked:translate-x-5 peer-checked:bg-white" />
+  </label>
+);
+
 const Settings = () => {
+  const navigate = useNavigate();
   const [profile, setProfile] = useState({
-    name: "John Doe",
-    email: "john.doe@example.com",
+    name: "",
+    email: "",
     avatar:
-      "https://ui-avatars.com/api/?name=John+Doe&background=3b82f6&color=fff",
+      "https://ui-avatars.com/api/?name=User&background=3b82f6&color=fff",
   });
 
-  const [notifications, setNotifications] = useState({
-    budgetExceeded: true,
-    goalAchieved: true,
-    largeTransactions: false,
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordAction, setPasswordAction] = useState(""); // 'save' or 'delete'
+  const [password, setPassword] = useState("");
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await api.get("/user");
+        if (response.data?.success) {
+          const userData = response.data.data;
+          setProfile({
+            name: userData.fullName,
+            email: userData.email,
+            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
+              userData.fullName
+            )}&background=3b82f6&color=fff`,
+          });
+        }
+      } catch (error) {
+        toast.error("Failed to load user profile");
+      }
+    };
+    fetchUser();
+  }, []);
+
+  const [notifications, setNotifications] = useState(() => {
+    const saved = JSON.parse(localStorage.getItem("notificationPrefs") || "{}");
+    return {
+      budgetExceeded: saved.budgetExceeded !== undefined ? saved.budgetExceeded : true,
+    };
   });
 
   const handleProfileChange = (e) => {
@@ -22,34 +66,68 @@ const Settings = () => {
   };
 
   const handleNotificationsChange = (e) => {
-    setNotifications({ ...notifications, [e.target.name]: e.target.checked });
+    const updated = { ...notifications, [e.target.name]: e.target.checked };
+    setNotifications(updated);
+    localStorage.setItem("notificationPrefs", JSON.stringify(updated));
   };
 
   const handleSave = (e) => {
     e.preventDefault();
-    alert("Settings saved successfully!");
+    setPasswordAction("save");
+    setPassword("");
+    setShowPasswordModal(true);
   };
 
   const handleDeleteAccount = () => {
-    alert("Warning: This will permanently delete your account.");
+    setPasswordAction("delete");
+    setPassword("");
+    setShowPasswordModal(true);
+  };
+
+  const confirmPasswordAction = async () => {
+    if (!password) {
+      toast.error("Password is required");
+      return;
+    }
+
+    try {
+      if (passwordAction === "save") {
+        const response = await api.put("/user", {
+          fullName: profile.name,
+          email: profile.email,
+          password,
+        });
+        if (response.data?.success) {
+          toast.success("Profile updated successfully");
+          setShowPasswordModal(false);
+          setPassword("");
+        }
+      } else if (passwordAction === "delete") {
+        const response = await api.delete("/user", {
+          data: { password },
+        });
+        if (response.data?.success) {
+          toast.success("Account deleted successfully");
+          localStorage.removeItem("token");
+          navigate("/login");
+        }
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Action failed");
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("jwt");
+    localStorage.removeItem("user");
+    toast.success("Logged out successfully");
+    navigate("/login");
   };
 
   const toggleRow =
     "flex items-center justify-between border-b border-slate-700 pb-4 last:border-b-0 last:pb-0";
-
-  const ToggleSwitch = ({ name, checked, onChange }) => (
-    <label className="relative ml-5 inline-flex h-6 w-11 shrink-0 cursor-pointer">
-      <input
-        type="checkbox"
-        name={name}
-        checked={checked}
-        onChange={onChange}
-        className="peer sr-only"
-      />
-      <span className="pointer-events-none absolute inset-0 rounded-full bg-slate-100 transition-colors peer-checked:bg-blue-500" />
-      <span className="pointer-events-none absolute left-[3px] top-[3px] h-[18px] w-[18px] rounded-full bg-slate-900 transition-transform peer-checked:translate-x-5 peer-checked:bg-white" />
-    </label>
-  );
 
   return (
     <div className="flex h-screen bg-[#0b0d14] text-slate-50 overflow-hidden">
@@ -58,10 +136,10 @@ const Settings = () => {
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <Dashboard title="Settings" />
 
-        <div className="flex-1 overflow-y-auto px-10 pb-10 font-[Inter,Roboto,sans-serif]">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-10 pb-10 font-[Inter,Roboto,sans-serif]">
           <div className="mx-0 flex max-w-[900px] flex-col gap-5">
             {/* Profile Card */}
-            <div className="rounded-xl border border-slate-700 bg-slate-800 px-8 py-6">
+            <div className="rounded-xl border border-slate-700 bg-slate-800 px-4 sm:px-8 py-6">
               <div className="mb-6 flex items-center gap-3">
                 <div className="flex items-center text-blue-500">
                   <FiUser className="h-[22px] w-[22px]" />
@@ -109,8 +187,8 @@ const Settings = () => {
                     Avatar
                   </label>
                   <div className="flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500">
-                      <FiUser className="h-6 w-6 text-white" />
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500 overflow-hidden">
+                      <img src={profile.avatar} alt="Avatar" className="h-full w-full object-cover" />
                     </div>
                     <button
                       type="button"
@@ -132,7 +210,7 @@ const Settings = () => {
             </div>
 
             {/* Notifications Card */}
-            <div className="rounded-xl border border-slate-700 bg-slate-800 px-8 py-6">
+            <div className="rounded-xl border border-slate-700 bg-slate-800 px-4 sm:px-8 py-6">
               <div className="mb-6 flex items-center gap-3">
                 <div className="flex items-center text-blue-500">
                   <FiBell className="h-[22px] w-[22px]" />
@@ -158,43 +236,39 @@ const Settings = () => {
                     onChange={handleNotificationsChange}
                   />
                 </div>
+              </div>
+            </div>
 
-                <div className={toggleRow}>
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-1 text-sm font-semibold text-slate-50">
-                      Goal Achieved
-                    </div>
-                    <div className="text-[13px] leading-snug text-slate-400">
-                      Get notified when you reach a savings goal
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    name="goalAchieved"
-                    checked={notifications.goalAchieved}
-                    onChange={handleNotificationsChange}
-                  />
+            {/* Session Card */}
+            <div className="rounded-xl border border-slate-700 bg-slate-800 px-4 sm:px-8 py-6">
+              <div className="mb-6 flex items-center gap-3">
+                <div className="flex items-center text-blue-500">
+                  <FiLogOut className="h-[22px] w-[22px]" />
                 </div>
+                <h2 className="m-0 text-lg font-semibold text-slate-50">Session</h2>
+              </div>
 
-                <div className={toggleRow}>
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-1 text-sm font-semibold text-slate-50">
-                      Large Transactions
-                    </div>
-                    <div className="text-[13px] leading-snug text-slate-400">
-                      Get notified for transactions over $500
-                    </div>
+              <div className="flex flex-col gap-4">
+                <div className="rounded-lg bg-slate-900/50 p-4 border border-slate-700/50">
+                  <div className="mb-1 text-sm font-semibold text-white">
+                    Sign Out
                   </div>
-                  <ToggleSwitch
-                    name="largeTransactions"
-                    checked={notifications.largeTransactions}
-                    onChange={handleNotificationsChange}
-                  />
+                  <div className="text-[13px] leading-snug text-slate-400">
+                    Signing out will clear your active session token. You can log back in at any time to resume tracking your expenses and insights.
+                  </div>
                 </div>
+                <button
+                  type="button"
+                  className="w-fit rounded-md bg-blue-500 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-600 cursor-pointer"
+                  onClick={handleLogout}
+                >
+                  Log Out
+                </button>
               </div>
             </div>
 
             {/* Danger Zone Card */}
-            <div className="rounded-xl border border-red-950 bg-[#1a1625] px-8 py-6">
+            <div className="rounded-xl border border-red-950 bg-[#1a1625] px-4 sm:px-8 py-6">
               <div className="mb-6 flex items-center gap-3">
                 <div className="flex items-center text-red-500">
                   <FiAlertTriangle className="h-[22px] w-[22px]" />
@@ -217,7 +291,7 @@ const Settings = () => {
                 </div>
                 <button
                   type="button"
-                  className="mt-4 w-fit rounded-md bg-red-500 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-600"
+                  className="mt-4 w-fit rounded-md bg-red-500 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-600 cursor-pointer"
                   onClick={handleDeleteAccount}
                 >
                   Delete Account
@@ -227,6 +301,65 @@ const Settings = () => {
           </div>
         </div>
       </div>
+
+      {/* Password Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-md mx-4 rounded-xl border border-slate-700 bg-slate-800 p-6 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-white">
+                {passwordAction === "delete"
+                  ? "Delete Account"
+                  : "Confirm Changes"}
+              </h3>
+              <button
+                onClick={() => setShowPasswordModal(false)}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <FiX className="h-5 w-5" />
+              </button>
+            </div>
+            {passwordAction === "delete" && (
+              <p className="mb-4 text-sm font-medium text-red-400">
+                Are you absolutely sure? This action cannot be undone. All your
+                data will be permanently deleted.
+              </p>
+            )}
+            <p className="mb-4 text-sm text-slate-300">
+              Please enter your current password to{" "}
+              {passwordAction === "delete"
+                ? "delete your account"
+                : "save these changes"}
+              .
+            </p>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter password"
+              className="mb-6 w-full rounded-lg border border-slate-600 bg-slate-700 px-4 py-3 text-sm text-slate-50 outline-none transition-colors focus:border-blue-500"
+            />
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowPasswordModal(false)}
+                className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmPasswordAction}
+                className={`rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors ${
+                  passwordAction === "delete"
+                    ? "bg-red-500 hover:bg-red-600"
+                    : "bg-blue-500 hover:bg-blue-600"
+                }`}
+              >
+                {passwordAction === "delete" ? "Delete Account" : "Save Changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
