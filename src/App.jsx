@@ -1,10 +1,18 @@
 import routes from "./routes/Routes";
 import { RouterProvider } from "react-router-dom";
-
-import React from 'react'
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const App = () => {
-  return <RouterProvider router={routes} />;
-}
+  return (
+    <>
+      <RouterProvider router={routes} />
+      <ToastContainer position="top-right" autoClose={2500} />
+    </>
+  );
+  // return(
+  //   <AddTransaction/>
+  // );
+};
 
-export default App
+export default App;
