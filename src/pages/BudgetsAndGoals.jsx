@@ -7,7 +7,7 @@ import api from "../utils/api";
 
 const BudgetsAndGoals = () => {
   const [limit, setLimit] = useState(0);
-  const [budgetCategory, setBudgetCategory] = useState("");
+  const [budgetCategory, setBudgetCategory] = useState("All");
   const [selectedMonth, setSelectedMonth] = useState("March 2026");
   const [spending, setSpending] = useState(0);
   const [remainingAmount, setRemainingAmount] = useState(0);
@@ -39,7 +39,7 @@ const BudgetsAndGoals = () => {
     setIsLoadingBudget(true);
     try {
       const response = await api.get("/budgets/current/status", {
-        params: categoryValue ? { category: categoryValue } : undefined,
+        params: categoryValue && categoryValue !== "All" ? { category: categoryValue } : undefined,
       });
       const data = response.data?.data;
       setLimit(Number(data?.budgetAmount || 0));
@@ -79,6 +79,17 @@ const BudgetsAndGoals = () => {
     fetchBudgetStatus(budgetCategory);
     fetchGoals();
   }, [budgetCategory]);
+
+  const categories = [
+    "All",
+    "Food & Dining",
+    "Transportation",
+    "Entertainment",
+    "Bills & Utilities",
+    "Shopping",
+    "Health & Fitness",
+    "Other",
+  ];
 
   // OPEN MODALS
   const handleSetBudget = () => {
@@ -132,10 +143,10 @@ const BudgetsAndGoals = () => {
         if (!isNaN(tempLimit) && Number(tempLimit) >= 0) {
           await api.post("/budgets/current", {
             amount: Number(tempLimit),
-            category: tempCategory?.trim() || null,
+            category: tempCategory === "All" ? null : tempCategory?.trim() || null,
           });
-          setBudgetCategory(tempCategory?.trim() || "");
-          await fetchBudgetStatus(tempCategory?.trim() || "");
+          setBudgetCategory(tempCategory || "All");
+          await fetchBudgetStatus(tempCategory || "All");
           toast.success("Current month budget saved successfully");
         }
       } else if (modalType === "addGoal") {
@@ -172,17 +183,17 @@ const BudgetsAndGoals = () => {
   };
 
   return (
-    <div className="flex bg-gray-900 min-h-screen text-gray-200">
+    <div className="flex bg-gray-900 min-h-screen text-gray-200 overflow-x-hidden">
       <Sidebar activePage="Budgets & Goals" />
 
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-screen overflow-x-hidden">
         {/* Top header */}
         <DashboardHeader
           title="Budgets & Goals"
           selectedMonth={selectedMonth}
           onMonthChange={setSelectedMonth}
         />
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {/* ===== BUDGET CARD ===== */}
           <div className="bg-gray-800 p-5 rounded-xl mb-8">
             <div className="flex justify-between items-center">
@@ -202,45 +213,73 @@ const BudgetsAndGoals = () => {
                 : ""}
             </p>
 
-            <div className="mt-4">
-              <label className="text-xs text-gray-400">CATEGORY FILTER</label>
-              <input
-                type="text"
-                value={budgetCategory}
-                onChange={(e) => setBudgetCategory(e.target.value)}
-                placeholder="Leave empty for overall budget"
-                className="w-full mt-2 px-3 py-2 rounded-lg bg-gray-700 outline-none text-sm"
-              />
-            </div>
-
-            <div className="flex justify-between my-5">
-              <div>
-                <p className="text-sm text-gray-400">Current Spending</p>
-                <h2 className="text-xl font-bold">
-                  {isLoadingBudget ? "Loading..." : `$${spending.toLocaleString()}`}
-                </h2>
-              </div>
-
-              <div>
-                <p className="text-sm text-gray-400">Budget Limit</p>
-                <h3 className="text-lg font-semibold">
-                  {isLoadingBudget ? "Loading..." : `$${limit.toLocaleString()}`}
-                </h3>
+            <div className="mt-6">
+              <label className="text-xs text-gray-400 uppercase tracking-wider mb-3 block">Category Filter</label>
+              <div className="flex flex-wrap gap-2">
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setBudgetCategory(cat)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                      budgetCategory === cat
+                        ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 scale-105"
+                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* progress */}
-            <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-yellow-500"
-                style={{ width: `${percentUsed}%` }}
-              ></div>
-            </div>
+            {!isLoadingBudget && limit === 0 ? (
+              <div className="bg-gray-700/30 border border-gray-600 rounded-lg p-8 mt-6 text-center">
+                <p className="text-gray-400">
+                  No budget set for <span className="text-white font-semibold">{budgetCategory === "All" ? "overall monthly budget" : budgetCategory}</span>
+                </p>
+                <button
+                  onClick={handleSetBudget}
+                  className="mt-4 text-indigo-400 hover:text-indigo-300 text-sm font-medium underline"
+                >
+                  Set one now
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="flex justify-between my-5">
+                  <div>
+                    <p className="text-sm text-gray-400">Current Spending</p>
+                    <h2 className="text-xl font-bold">
+                      {isLoadingBudget ? "Loading..." : `$${spending.toLocaleString()}`}
+                    </h2>
+                  </div>
 
-            <div className="flex justify-between text-sm mt-2">
-              <span>{percentUsed.toFixed(1)}% used</span>
-              <span>${remainingAmount.toLocaleString()} remaining</span>
-            </div>
+                  <div>
+                    <p className="text-sm text-gray-400">Budget Limit</p>
+                    <h3 className="text-lg font-semibold">
+                      {isLoadingBudget ? "Loading..." : `$${limit.toLocaleString()}`}
+                    </h3>
+                  </div>
+                </div>
+
+                {/* progress */}
+                <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-indigo-500 transition-all duration-500 ease-out"
+                    style={{ width: `${Math.min(percentUsed, 100)}%` }}
+                  ></div>
+                </div>
+
+                <div className="flex justify-between text-sm mt-2">
+                  <span className={percentUsed > 100 ? "text-red-400" : "text-gray-400"}>
+                    {percentUsed.toFixed(1)}% used
+                  </span>
+                  <span className={remainingAmount < 0 ? "text-red-400" : "text-gray-400"}>
+                    ${remainingAmount.toLocaleString()} {remainingAmount < 0 ? "over budget" : "remaining"}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
           {/* ===== GOALS HEADER ===== */}
           <div className="flex justify-between items-center mb-4">
@@ -305,17 +344,17 @@ const BudgetsAndGoals = () => {
                       <span>${Math.max(0, goal.amountLeft)} to go</span>
                     </div>
 
-                    <button
-                      onClick={() => handleUpdateProgress(goal)}
-                      className="w-full bg-gray-700 py-2 rounded-lg hover:bg-gray-600 transition-colors"
-                    >
-                      Update Progress
-                    </button>
-                    
-                    {goal.isCompleted && (
-                      <div className="absolute top-2 right-2 bg-green-500 text-white text-[10px] px-2 py-0.5 rounded-full">
-                        Completed
+                    {goal.isCompleted ? (
+                      <div className="w-full bg-green-600 py-2 rounded-lg text-center text-white font-medium cursor-default">
+                        ✓ Completed
                       </div>
+                    ) : (
+                      <button
+                        onClick={() => handleUpdateProgress(goal)}
+                        className="w-full bg-gray-700 py-2 rounded-lg hover:bg-gray-600 transition-colors"
+                      >
+                        Update Progress
+                      </button>
                     )}
                   </div>
                 );
@@ -328,7 +367,7 @@ const BudgetsAndGoals = () => {
       {/* ===== MODAL ===== */}
       {showModal && (
         <div className="fixed inset-0 bg-black/70 flex justify-center items-center z-50">
-          <div className="bg-gray-800 p-6 rounded-xl w-[400px] text-white">
+          <div className="bg-gray-800 p-6 rounded-xl w-full max-w-[400px] mx-4 text-white">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold">
                 {modalType === "budget" && "Monthly Budget"}
@@ -366,16 +405,20 @@ const BudgetsAndGoals = () => {
                   />
                 </div>
                 <label className="text-xs text-gray-400 mt-3 block">
-                  CATEGORY (OPTIONAL)
+                  CATEGORY
                 </label>
                 <div className="bg-gray-700 p-3 rounded-lg mt-2">
-                  <input
-                    type="text"
+                  <select
                     value={tempCategory}
                     onChange={(e) => setTempCategory(e.target.value)}
-                    placeholder="e.g. Food & Dining"
-                    className="bg-transparent w-full outline-none"
-                  />
+                    className="bg-transparent w-full outline-none text-white appearance-none"
+                  >
+                    {categories.map(cat => (
+                      <option key={cat} value={cat} className="bg-gray-800">
+                        {cat === "All" ? "Overall Budget" : cat}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </>
             )}
