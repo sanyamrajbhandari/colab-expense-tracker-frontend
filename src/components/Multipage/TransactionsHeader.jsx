@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, User } from "lucide-react";
+import { ChevronDown, User, Menu } from "lucide-react";
 
 const DEFAULT_MONTH_OPTIONS = ["All"];
 
@@ -13,8 +13,18 @@ function TransactionsHeader({
 
   return (
     <div className="flex items-center justify-between px-6 py-4 bg-[#0f1117] border-b border-white/5">
-      {/* Page title on the left */}
-      <h1 className="text-white font-semibold text-lg">Transactions</h1>
+      {/* Page title on the left with hamburger */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() =>
+            window.dispatchEvent(new CustomEvent("toggle-sidebar"))
+          }
+          className="p-1.5 text-gray-400 hover:text-white rounded-lg hover:bg-[#1a1d27] md:hidden cursor-pointer flex items-center justify-center"
+        >
+          <Menu size={20} />
+        </button>
+        <h1 className="text-white font-semibold text-lg">Transactions</h1>
+      </div>
 
       {/* Right side: month button + avatar */}
       <div className="flex items-center gap-3">

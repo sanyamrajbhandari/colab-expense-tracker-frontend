@@ -1,4 +1,15 @@
-import { FaPen, FaTrash } from "react-icons/fa";
+import {
+  FaPen,
+  FaTrash,
+  FaUtensils,
+  FaWallet,
+  FaCar,
+  FaFilm,
+  FaBolt,
+  FaShoppingBag,
+  FaDumbbell,
+  FaQuestion,
+} from "react-icons/fa";
 
 // Color for the category badge (the little pill label)
 const CATEGORY_COLORS = {
@@ -11,31 +22,25 @@ const CATEGORY_COLORS = {
   "Health & Fitness": "text-teal-400 bg-teal-400/10",
 };
 
-// Background color for the icon square on the left of each row
-const ICON_COLORS = {
-  "Grocery Shopping": "bg-orange-500",
-  Salary: "bg-green-500",
-  "Uber Ride": "bg-teal-500",
-  "Netflix Subscription": "bg-red-500",
-  "Freelance Project": "bg-green-500",
-  "Restaurant Dinner": "bg-orange-500",
-  "Electricity Bill": "bg-yellow-500",
-  "Online Shopping": "bg-purple-500",
-  "Gas Station": "bg-teal-500",
-  "Coffee Shop": "bg-orange-500",
-  "Client Payment": "bg-green-500",
-  "Gym Membership": "bg-red-500",
+const CATEGORY_ICON_COLORS = {
+  "Food & Dining": "bg-orange-500",
+  Income: "bg-green-500",
+  Transportation: "bg-blue-500",
+  Entertainment: "bg-purple-500",
+  "Bills & Utilities": "bg-yellow-500",
+  Shopping: "bg-pink-500",
+  "Health & Fitness": "bg-teal-500",
 };
 
-// Takes a title like "Gas Station" and returns "GS"
-function getInitials(title) {
-  const words = title.split(" ");
-  const firstTwo = words.slice(0, 2);
-  const initials = firstTwo.map(function (word) {
-    return word[0];
-  });
-  return initials.join("").toUpperCase();
-}
+const CATEGORY_ICONS = {
+  "Food & Dining": FaUtensils,
+  Income: FaWallet,
+  Transportation: FaCar,
+  Entertainment: FaFilm,
+  "Bills & Utilities": FaBolt,
+  Shopping: FaShoppingBag,
+  "Health & Fitness": FaDumbbell,
+};
 
 // This is one single row in the table
 function TransactionRow({ transaction, onEdit, onDelete }) {
@@ -47,9 +52,10 @@ function TransactionRow({ transaction, onEdit, onDelete }) {
     : "$" + transaction.amount.toLocaleString();
   const amountColor = isIncome ? "text-green-400" : "text-red-400";
 
-  const iconBg = ICON_COLORS[transaction.title] || "bg-gray-600";
+  const iconBg = CATEGORY_ICON_COLORS[transaction.category] || "bg-gray-600";
   const categoryStyle =
     CATEGORY_COLORS[transaction.category] || "text-gray-400 bg-white/5";
+  const IconComponent = CATEGORY_ICONS[transaction.category] || FaQuestion;
 
   return (
     <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
@@ -63,16 +69,14 @@ function TransactionRow({ transaction, onEdit, onDelete }) {
               iconBg
             }
           >
-            <span className="text-white text-xs font-bold">
-              {getInitials(transaction.title)}
-            </span>
+            <IconComponent className="text-white text-sm" />
           </div>
           <span className="text-white text-sm">{transaction.title}</span>
         </div>
       </td>
 
       {/* Category column */}
-      <td className="py-3 px-4">
+      <td className="py-3 px-4 hidden sm:table-cell">
         <span
           className={
             "text-xs px-2 py-1 rounded-full font-medium " + categoryStyle
@@ -83,7 +87,9 @@ function TransactionRow({ transaction, onEdit, onDelete }) {
       </td>
 
       {/* Wallet column */}
-      <td className="py-3 px-4 text-gray-400 text-sm">{transaction.wallet}</td>
+      <td className="py-3 px-4 text-gray-400 text-sm hidden md:table-cell">
+        {transaction.paymentMethod}
+      </td>
 
       {/* Amount column */}
       <td className={"py-3 px-4 text-sm font-semibold " + amountColor}>
@@ -91,26 +97,26 @@ function TransactionRow({ transaction, onEdit, onDelete }) {
       </td>
 
       {/* Date column */}
-      <td className="py-3 px-4 text-gray-400 text-sm text-right">
-        <div className="flex items-center justify-end gap-3">
-          <span>{transaction.date}</span>
-          {onEdit && onDelete && (
-            <>
+      <td className="py-3 px-4 text-gray-400 text-sm">
+        <div className="flex items-center justify-between gap-6">
+          <span className="whitespace-nowrap">{transaction.date}</span>
+          {!transaction.wallet?.isExternal && onEdit && onDelete && (
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => onEdit(transaction)}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="bg-white/5 hover:bg-white/10 border border-white/10 p-2 rounded-lg text-gray-400 hover:text-white transition-all cursor-pointer"
                 title="Edit"
               >
                 <FaPen size={12} />
               </button>
               <button
                 onClick={() => onDelete(transaction)}
-                className="text-red-400 hover:text-red-300 transition-colors"
+                className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 p-2 rounded-lg text-red-400 hover:text-red-300 transition-all cursor-pointer"
                 title="Delete"
               >
                 <FaTrash size={12} />
               </button>
-            </>
+            </div>
           )}
         </div>
       </td>
@@ -129,16 +135,16 @@ function TransactionTable({ transactions, onEdit, onDelete }) {
             <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider text-left">
               Title
             </th>
-            <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider text-left">
+            <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider text-left hidden sm:table-cell">
               Category
             </th>
-            <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider text-left">
+            <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider text-left hidden md:table-cell">
               Wallet
             </th>
             <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider text-left">
               Amount
             </th>
-            <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">
+            <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider text-left">
               Date
             </th>
           </tr>

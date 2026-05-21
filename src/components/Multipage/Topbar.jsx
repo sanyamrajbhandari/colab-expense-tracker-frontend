@@ -17,4 +17,3 @@ function Topbar({ title }) {
 }
 
 export default Topbar;
-
