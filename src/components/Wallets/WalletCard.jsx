@@ -30,12 +30,14 @@ const WalletCard = ({ walletName, balance, currency, iconColor, type, onEdit, on
             </div>
 
             {/* Delete button - opens confirmation modal */}
-            <button
-              onClick={() => setShowConfirm(true)}
-              className="bg-red-500/10 border border-red-500/20 rounded-lg p-2 cursor-pointer text-red-500 hover:bg-red-500/20 transition-colors flex items-center"
-            >
-              <FaTrash size={14} />
-            </button>
+            {!isExternal && (
+              <button
+                onClick={() => setShowConfirm(true)}
+                className="bg-red-500/10 border border-red-500/20 rounded-lg p-2 cursor-pointer text-red-500 hover:bg-red-500/20 transition-colors flex items-center"
+              >
+                <FaTrash size={14} />
+              </button>
+            )}
           </div>
 
           {/* Wallet Name */}
